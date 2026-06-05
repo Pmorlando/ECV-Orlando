@@ -1,5 +1,5 @@
-// created from x file from Sam Siewert and modified by Phil Orlando
-// Used Claude to assist in creating the Makefile to actually find my libraries 
+// created from Github ECV-ECEE-5763/computer_vision_cv4_tested/simpler-capture-4/capture.cpp from Sam Siewert and modified by Phil Orlando
+// Used Claude to assist in creating the Makefile to actually find my libraries which i could not get to compile 
 // cv.line() info and examples taken from https://docs.opencv.org/4.13.0/dc/da5/tutorial_py_drawing_functions.html#autotoc_md1293
 
 #include <stdio.h>
@@ -41,15 +41,9 @@ int main()
       line(frame, Point(0, height/2), Point(width, height/2), Scalar(0,255,255), 1);
       // Draw 4 pixel thick rectangle for border
       rectangle(frame,Point(0,0), Point(width, height), Scalar(0,0,255), 4); //went with red for border
-          
-
-
+      // after this commment is unchanged from Sam Siewert Github file noted above
       imshow("video_display", frame);
-// cv.line(frame, point1 point2 color need yellow, thickness single, linetype crosshair, shift??)
-//
-// maybe draw marker. 
-// drawMarker(point, yellow, markerType = MARKER_CROSS, markerSize = 1, thickness=1, line_type = FILLED) 
-//
+
       if ((winInput = waitKey(10)) == ESCAPE_KEY)
       //if ((winInput = waitKey(0)) == ESCAPE_KEY)
       {
