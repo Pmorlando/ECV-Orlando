@@ -1,3 +1,8 @@
+// Modified from OpenCV example. https://docs.opencv.org/4.1.1/db/d28/tutorial_cascade_classifier.html
+// Modifications made by Phil Orlando outlined below. 
+// run using ./facefind Sam-Headshot.png samface.png
+// additionally ran with ./facefind anchorman.png ronface.png
+
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -19,8 +24,8 @@ int main( int argc, const char** argv )
 {
     CommandLineParser parser(argc, argv,
                              "{help h||}"
-                             "{face_cascade|/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_alt.xml|Path to face cascade.}"
-                             "{eyes_cascade|/usr/local/share/opencv4/haarcascades/haarcascade_eye_tree_eyeglasses.xml|Path to eyes cascade.}");
+                             "{face_cascade|/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_alt.xml|Path to face cascade.}" //modified for location of stored xml file
+                             "{eyes_cascade|/usr/local/share/opencv4/haarcascades/haarcascade_eye_tree_eyeglasses.xml|Path to eyes cascade.}"); // modified for location of stored xml file
 
     String face_cascade_name = samples::findFile( parser.get<String>("face_cascade") );
     String eyes_cascade_name = samples::findFile( parser.get<String>("eyes_cascade") );
@@ -36,7 +41,7 @@ int main( int argc, const char** argv )
         cout << "--(!)Error loading eyes cascade\n";
         return -1;
     };
-
+// Begining of my contributions to this script
     if( argc <3)
     { 
 	    cout << "Using facefind";
@@ -52,7 +57,7 @@ int main( int argc, const char** argv )
     imwrite(argv[2], frame);
     cout << "Output saved to " << argv[2] << endl;    
     waitKey(0);
-    
+    // end of my contributions to this script
     return 0;
 }
 
