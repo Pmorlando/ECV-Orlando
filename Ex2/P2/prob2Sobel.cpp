@@ -1,3 +1,7 @@
+// Originally created by Sam Seiwert
+// Modified by Phil Orlando for Exercise 2 of ECEN 5763
+
+
 #include "opencv2/imgproc.hpp"
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
