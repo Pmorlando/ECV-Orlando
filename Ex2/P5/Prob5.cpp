@@ -37,10 +37,6 @@ using namespace std;
 
 // See www.asciitable.com
 #define ESCAPE_KEY (27)
-#define Canny ('c')
-#define Sobel ('s')
-#define None ('n')
-
 #define SYSTEM_ERROR (-1)
 
 int main()
