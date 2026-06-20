@@ -1,49 +1,90 @@
-/*
- *
- *  Example by Sam Siewert 
- *
- *  Created for OpenCV 4.x for Jetson Nano 2g, based upon
- *  https://docs.opencv.org/4.1.1
- *
- *  Tested with JetPack 4.6 which installs OpenCV 4.1.1
- *  (https://developer.nvidia.com/embedded/jetpack)
- *
- *  Based upon earlier simpler-capture examples created
- *  for OpenCV 2.x and 3.x (C and C++ mixed API) which show
- *  how to use OpenCV instead of lower level V4L2 API for the
- *  Linux UVC driver.
- *
- *  Verify your hardware and OS configuration with:
- *  1) lsusb
- *  2) ls -l /dev/video*
- *  3) dmesg | grep UVC
- *
- *  Note that OpenCV 4.x only supports the C++ API
- *  Modified by Phil Orlando for exercise 2
- *  compiled using 
- *  g++ -O0 -g -I/usr/local/include/opencv4 capture.cpp -o capture -L/usr/local/lib `pkg-config --  
- *   libs opencv4`
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <time.h>
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 
 using namespace cv;
 using namespace std;
 
+
 // See www.asciitable.com
 #define ESCAPE_KEY (27)
+#define Key_Canny (99)
+#define Key_Sobel (115)
+#define Key_None (110)
 #define SYSTEM_ERROR (-1)
 
-int main()
+int mode = 0;
+
+Mat canny_frame, timg_gray, timg_grad;
+Mat frame;
+// Canny 
+int lowThreshold = 0;
+const int max_lowThreshold = 100;
+const int ratio = 3;
+const int kernel_size = 3;
+const char* window_name = "Edge Map";
+
+// Sobel 
+int ksize = 1;
+int scale = 3;
+int delta = 0;
+int ddepth = CV_16S;
+Mat sobel_frame, grad;
+Mat grad_x, grad_y;
+Mat abs_grad_x, abs_grad_y;
+
+
+
+void CannyThreshold()
+{
+    cvtColor(frame, timg_gray, COLOR_BGR2GRAY);
+
+    /// Reduce noise with a kernel 3x3
+    blur( timg_gray, canny_frame, Size(3,3) );
+
+    /// Canny detector
+    Canny( canny_frame, canny_frame, lowThreshold, lowThreshold*ratio, kernel_size );
+
+    /// Using Canny's output as a mask, we display our result
+    timg_grad = Scalar::all(0);
+
+    frame.copyTo( timg_grad, canny_frame);
+
+    //imshow( window_name, timg_grad);
+
+}
+
+void Sobeledge()
+{
+    cvtColor(frame, timg_gray, COLOR_BGR2GRAY);
+
+    /// Reduce noise with a kernel 3x3
+    blur( timg_gray, sobel_frame, Size(3,3) );
+
+    Sobel(sobel_frame, grad_x, ddepth, 1, 0, ksize, scale, delta, BORDER_DEFAULT);
+    Sobel(sobel_frame, grad_y, ddepth, 0, 1, ksize, scale, delta, BORDER_DEFAULT);
+
+    convertScaleAbs(grad_x, abs_grad_x);
+    convertScaleAbs(grad_y, abs_grad_y);
+
+    addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad);
+    //imshow(window_name, grad);
+}
+
+
+
+int main( int argc, char** argv )
 {
    VideoCapture cam0(0);
    namedWindow("video_display");
    char winInput;
+   struct timespec curr_t;
+   double start, end;
+
 
    if (!cam0.isOpened())
    {
@@ -52,36 +93,65 @@ int main()
 
    cam0.set(CAP_PROP_FRAME_WIDTH, 640);
    cam0.set(CAP_PROP_FRAME_HEIGHT, 480);
-   
-   struct timespec start, end;
-   unsigned int frame_count = 0; // need to count frames to get FPS
-   clock_gettime(CLOCK_MONOTONIC, &start);//start before any capture
+
+   namedWindow( window_name, WINDOW_AUTOSIZE );
+
 
    while (1)
    {
-      Mat frame;
-      cam0.read(frame);
-      imshow("video_display", frame);
-      frame_count++;//increase frames each capture
+      clock_gettime(CLOCK_MONOTONIC, &curr_t);
+      start = (double)curr_t.tv_sec + ((double)curr_t.tv_nsec) / 1000000000.0;
 
-      if ((winInput = waitKey(1)) == ESCAPE_KEY) // adjusted down to 1ms to get better idea of FPS
-      //if ((winInput = waitKey(0)) == ESCAPE_KEY)
+      cam0.read(frame);
+      
+      if(mode == 1)// canny mode for when c is pressed switches to canny edge until another key is pressed
       {
-          clock_gettime(CLOCK_MONOTONIC, &end);
+        CannyThreshold();
+        displayframe = &timg_grad;
+      }
+      else if(mode == 2)
+      {
+        Sobeledge();
+        displayframe = &grad; 
+      }
+      else
+      {
+        displayframe = &frame;
+      }
+
+
+      if ((winInput = waitKey(1)) == ESCAPE_KEY)
+      {
           break;
       }
-      else if(winInput == 'n')
+      else if(winInput == Key_None)
       {
-	  cout << "input " << winInput << " ignored" << endl;
+        mode = 0;
+        cout << "No processing to image" << endl;
       }
-      
-   }
-   
-   
-   double runtime = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/1000000000.0;
-   
-   cout << "Frames: " << frame_count << ", AVG FPS: " <<  (frame_count/runtime) << endl;
-   
+      else if(winInput == Key_Canny)
+      {
+        cout << "Canny Edge Detection" << endl;
+        mode = 1;
 
-   destroyWindow("video_display"); 
-};
+      }
+      else if(winInput == Key_Sobel)
+      {
+        cout << "Sobel Edge Detection" << endl;
+        mode = 2;
+      }
+
+      clock_gettime(CLOCK_MONOTONIC, &curr_t);
+      end = (double)curr_t.tv_sec + ((double)curr_t.tv_nsec) / 1000000000.0;
+      printf("Process time=%lf msec, fps=%lf\n", (end-start)*1000.0, 1.0/(end-start));
+
+      char fps[20];
+
+      sprintf(fps,  "FPS: %.2f", 1.0/(end-start));
+      putText(*displayframe, fps, Point(30,30), FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250),1,LINE_AA);
+      imshow(window_name, *displayframe);
+   }
+
+   destroyWindow("video_display");
+
+}
