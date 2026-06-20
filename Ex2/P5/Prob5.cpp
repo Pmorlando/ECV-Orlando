@@ -1,3 +1,10 @@
+// Written by Sam Siewert and modified by Phil Orlando
+// from Cannycam.cpp
+// compiled using 
+// g++ -O0 -g -I/usr/local/include/opencv4 Prob5.cpp -o Prob5 -L/usr/local/lib `pkg-config --
+// libs opencv4`
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -22,9 +29,8 @@ int mode = 0;
 Mat canny_frame, timg_gray, timg_grad;
 Mat frame;
 // Canny 
-int lowThreshold = 0;
-const int max_lowThreshold = 100;
-const int ratio = 3;
+const int lowThreshold = 50;
+const int highThreshold = 150; //fixed threshold values 
 const int kernel_size = 3;
 const char* window_name = "Edge Map";
 
@@ -47,7 +53,7 @@ void CannyThreshold()
     blur( timg_gray, canny_frame, Size(3,3) );
 
     /// Canny detector
-    Canny( canny_frame, canny_frame, lowThreshold, lowThreshold*ratio, kernel_size );
+    Canny( canny_frame, canny_frame, lowThreshold, highThreshold, kernel_size );
 
     /// Using Canny's output as a mask, we display our result
     timg_grad = Scalar::all(0);
@@ -84,6 +90,7 @@ int main( int argc, char** argv )
    char winInput;
    struct timespec curr_t;
    double start, end;
+   Mat *displayframe;
 
 
    if (!cam0.isOpened())
