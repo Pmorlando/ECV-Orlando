@@ -19,11 +19,15 @@
  *  3) dmesg | grep UVC
  *
  *  Note that OpenCV 4.x only supports the C++ API
- *
+ *  Modified by Phil Orlando for exercise 2
+ *  compiled using 
+ *  g++ -O0 -g -I/usr/local/include/opencv4 capture.cpp -o capture -L/usr/local/lib `pkg-config --  
+ *   libs opencv4`
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <time.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -48,16 +52,22 @@ int main()
 
    cam0.set(CAP_PROP_FRAME_WIDTH, 640);
    cam0.set(CAP_PROP_FRAME_HEIGHT, 480);
+   
+   struct timespec start, end;
+   unsigned int frame_count = 0; // need to count frames to get FPS
+   clock_gettime(CLOCK_MONOTONIC, &start);//start before any capture
 
    while (1)
    {
       Mat frame;
       cam0.read(frame);
       imshow("video_display", frame);
+      frame_count++;//increase frames each capture
 
       if ((winInput = waitKey(10)) == ESCAPE_KEY)
       //if ((winInput = waitKey(0)) == ESCAPE_KEY)
       {
+          clock_gettime(CLOCK_MONOTONIC, &end);
           break;
       }
       else if(winInput == 'n')
@@ -66,6 +76,12 @@ int main()
       }
       
    }
+   
+   
+   double runtime = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/1000000000.0;
+   
+   cout << "Frames: " << frame_count << ", AVG FPS: " <<  (frame_count/runtime) << endl;
+   
 
    destroyWindow("video_display"); 
 };

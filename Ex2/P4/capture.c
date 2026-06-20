@@ -12,7 +12,8 @@
  *      This program is provided with the V4L2 API
  * see http://linuxtv.org/docs.php for more information
  */
- // Modified by Phil Orlando for Exercise 3
+ // Modified by Phil Orlando for Exercise 2
+ // compiled using the make file in this folder
 
 #include <stdio.h>
 #include <stdlib.h>
