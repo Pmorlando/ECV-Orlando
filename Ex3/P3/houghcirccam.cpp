@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 {
     VideoCapture cam0(0);
     Mat frame, gray;
-    const char* window_name = "Huff Circ"
+    const char* window_name = "Huff Circ";
 
     if (!cam0.isOpened())
     {
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
         cam0.read(frame);
 
         // notation and syntax taken from OpenCV samples/cpp/tutorial_code/ImgTrans/houghcircles.cpp
-        cvtColor(frame, gray, COLOR_GRAY2BGR);
+        cvtColor(frame, gray, COLOR_BGR2GRAY);
 
         medianBlur(gray, gray, 5);
 
@@ -60,6 +60,7 @@ int main(int argc, char **argv)
             circle(frame, center, 1, Scalar(0,100,100), 3, LINE_AA);
 
             // circle outline 
+            int radius = c[2];
             circle(frame, center, radius, Scalar(255,0,255), 3, LINE_AA);
         }
 
@@ -67,7 +68,7 @@ int main(int argc, char **argv)
 
         imshow(window_name, frame);
         // Wait and Exit
-        if(waitKey(10)== ESCAPE_KEY) break;
+        if(waitKey(100)== ESCAPE_KEY) break;
 
     }
     return 0;
