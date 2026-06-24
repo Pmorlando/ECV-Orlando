@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 {
     VideoCapture cam0(0);
     Mat frame;
-    const char* window_name = "vidout"
+    const char* window_name = "vidout";
 
     if (!cam0.isOpened())
     {
