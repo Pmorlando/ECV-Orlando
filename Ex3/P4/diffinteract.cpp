@@ -25,15 +25,13 @@ char difftext[20];
 
 int main( int argc, char** argv )
 {
-    Mat mat_frame, mat_diff, mat_frame_prev;
-    VideoCapture cam0(0);
+    Mat mat_frame, mat_diff, mat_frame_prev, mat_small, mat_diff_small;
+    Size display_size(640, 480);
+    VideoCapture cam0("Dark-Room-Laser-Spot-with-Clutter.mpeg");
     unsigned int diffsum, maxdiff;
     double percent_diff;
 
-
-    //open the video stream and make sure it's opened
-    // "0" is the default video device which is normally the built-in webcam
-    if(!cam0.open(0)) 
+    if(!cam0.open("Dark-Room-Laser-Spot-with-Clutter.mpeg")) 
     {
         cout << "Error opening video stream or file" << endl;
         return -1;
@@ -42,16 +40,17 @@ int main( int argc, char** argv )
     {
 	   cout << "Opened default camera interface" << endl;
     }
-    cam0.set(CAP_PROP_FRAME_WIDTH, 640);
-    cam0.set(CAP_PROP_FRAME_HEIGHT, 480);
+
 
     while(!cam0.read(mat_frame)) {
 	cout << "No frame" << endl;
 	waitKey(33);
+	return -1;
     }
+    resize(mat_frame, mat_small, display_size); 
 
-    mat_diff = mat_frame.clone();
-    mat_frame_prev = mat_frame.clone();
+    mat_diff = mat_small.clone();
+    mat_frame_prev = mat_small.clone();
 
     maxdiff = (mat_diff.cols)*(mat_diff.rows)*255;
 
@@ -60,9 +59,11 @@ int main( int argc, char** argv )
 	if(!cam0.read(mat_frame)) {
 		cout << "No frame" << endl;
 		waitKey();
+		break;
 	}
+	resize(mat_frame, mat_small, display_size);
 
-	absdiff(mat_frame_prev, mat_frame, mat_diff);
+	absdiff(mat_frame_prev, mat_small, mat_diff);
 
 	// worst case sum is resolution * 255
 	diffsum = (unsigned int)cv::sum(mat_diff)[0]; // single channel sum
@@ -74,14 +75,14 @@ int main( int argc, char** argv )
 
 	if(percent_diff > 0.5) putText(mat_diff, difftext, Point(30,30), FONT_HERSHEY_COMPLEX_SMALL, 0.8, Scalar(200,200,250), 1, LINE_AA);
 
-	imshow("Example", mat_frame);
+	imshow("Example", mat_small);
 	imshow("Previous", mat_frame_prev);
 	imshow("Diff", mat_diff);
 
 
         if(waitKey(10) == ESCAPE_KEY) break;
 
-	mat_frame_prev = mat_frame.clone();
+	mat_frame_prev = mat_small.clone();
     }
 
 };
