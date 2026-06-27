@@ -78,8 +78,8 @@ int main( int argc, char** argv )
     	    	}
     	    }
     	}
-    	int xbar = (xmax - xmin)/2;
-    	int ybar = (ymax - ymin)/2;
+    	int xbar = (xmax + xmin)/2;
+    	int ybar = (ymax + ymin)/2;
     	
     	
     	// crosshair drawing
