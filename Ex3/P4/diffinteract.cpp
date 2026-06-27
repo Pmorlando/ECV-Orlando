@@ -33,12 +33,12 @@ int main( int argc, char** argv )
 
     if(!cam0.open("Dark-Room-Laser-Spot-with-Clutter.mpeg")) 
     {
-        cout << "Error opening video stream or file" << endl;
+        cout << "Error opening file" << endl;
         return -1;
     }
     else
     {
-	   cout << "Opened default camera interface" << endl;
+	   cout << "Opened file" << endl;
     }
 
 
