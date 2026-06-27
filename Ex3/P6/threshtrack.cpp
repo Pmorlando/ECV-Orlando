@@ -17,7 +17,7 @@ using namespace std;
 
 int main( int argc, char** argv )
 {
-    Mat mat_frame, big_frame;
+    Mat mat_frame, big_frame, gray_frame;
     VideoCapture cam0;
     char laserframe[50];
     
@@ -39,24 +39,21 @@ int main( int argc, char** argv )
     
     int framecnt = 0;
     
-    resize(big_frame, mat_frame, Size(640, 480); 
+    resize(big_frame, gray_frame, Size(640, 480)); 
+    cvtColor(gray_frame, mat_frame, COLOR_BGR2GRAY);
     
     while(1)
     {
     	
-    	int xpix = mat_frame.cols;
-    	int ypix = mat_frame.rows; 
-    	int i = 0;
-    	int j = 0;
     	int xmin = mat_frame.cols;
     	int xmax = 0;
     	int ymin = mat_frame.rows;
     	int ymax = 0;
     	char trackdot[50];
     	
-    	for(int i = 0, i < mat_frame.cols, i++)
+    	for(int i = 0; i < mat_frame.rows; i++)
     	{
-    	    for(int j = 0, j < mat_frame.rows, j++)
+    	    for(int j = 0; j < mat_frame.cols; j++)
     	    {
     	    	//if pixel at i,j <60 make 0, else find the left and right most pixel idx with any value??
     	    	if(mat_frame.at<uchar>(i,j) < 60)
@@ -68,16 +65,16 @@ int main( int argc, char** argv )
     	
     	   	
     	// find extent of the dot
-    	for(int i = 0, i < mat_frame.cols, i++)
+    	for(int i = 0; i < mat_frame.rows; i++)
     	{
-    	    for(int j = 0, j < mat_frame.rows, j++)
+    	    for(int j = 0; j < mat_frame.cols; j++)
     	    {
     	    	if(mat_frame.at<uchar>(i,j) >0)
     	    	{
-    	    	    if(i < xmin) xmin = i;//starts as right most pixel and will find minimum
-    	    	    if(i > xmax) xmax = i;// reverse
-    	    	    if(j < ymin) ymin = j;// same for y
-    	    	    if(j > ymax) ymax = j;// reverse same
+    	    	    if(j < xmin) xmin = j;//starts as right most pixel and will find minimum
+    	    	    if(j > xmax) xmax = j;// reverse
+    	    	    if(i < ymin) ymin = i;// same for y
+    	    	    if(i > ymax) ymax = i;// reverse same
     	    	}
     	    }
     	}
@@ -100,20 +97,21 @@ int main( int argc, char** argv )
     	 //save to images, will ffmpeg to video again
     	
     	
-    	sprintf(trackdot, "trackedot%04d.pgm", framecnt);// naming string for each frame
+    	sprintf(trackdot, "trackdot%04d.pgm", framecnt);// naming string for each frame
     
     	imwrite(trackdot, mat_frame);//save each frame with name string
     	
     	framecnt++;
     	
-    	if(!cam0.read(mat_frame))
+    	if(!cam0.read(big_frame))
     	{
     	    cout << "No Frame" << endl;
     	    break;// break out if no more frames
     	}
-    	
+    	resize(big_frame, gray_frame, Size(640,480));
+    	cvtColor(gray_frame, mat_frame, COLOR_BGR2GRAY);
     }
-    cout << "Save " << framecnt << " frames" << endl;
+    cout << "Saved " << framecnt << " frames" << endl;
     return 0;
     	   
 }
