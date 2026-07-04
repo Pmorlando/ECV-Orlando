@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     }
 
     Mat imgmatch;
-    for(good.size >= 4)
+    for(good.size() >= 4)
     {
         vector<Point2f> ptsBook, ptsScene;
         for(const auto& a : good)
@@ -66,16 +66,16 @@ int main(int argc, char** argv)
         corners[3] = Point2f(0, (float)book.rows);
         perspectiveTransform(corners, sceneCorners, H);
 
-        drawMatches(book, kpsBook, scene, kpsScene, good, imgMatches, Scalar::all(-1), Scalar(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+        drawMatches(book, kpsBook, scene, kpsScene, good, imgmatch, Scalar::all(-1), Scalar(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
 
         Point2f offset((float)book.cols, 0);
-        line(imgMatches, sceneCorners[0] + offset, sceneCorners[1] + offset, Scalar(0,255,0), 3);
-        line(imgMatches, sceneCorners[1] + offset, sceneCorners[2] + offset, Scalar(0,255,0), 3);
-        line(imgMatches, sceneCorners[2] + offset, sceneCorners[3] + offset, Scalar(0,255,0), 3);
-        line(imgMatches, sceneCorners[3] + offset, sceneCorners[0] + offset, Scalar(0,255,0), 3);
+        line(imgmatch, sceneCorners[0] + offset, sceneCorners[1] + offset, Scalar(0,255,0), 3);
+        line(imgmatch, sceneCorners[1] + offset, sceneCorners[2] + offset, Scalar(0,255,0), 3);
+        line(imgmatch, sceneCorners[2] + offset, sceneCorners[3] + offset, Scalar(0,255,0), 3);
+        line(imgmatch, sceneCorners[3] + offset, sceneCorners[0] + offset, Scalar(0,255,0), 3);
     }
-    imshow("SIFT match", imgMatches);
-    imwrite("siftmatches.png", imgMatches);
+    imshow("SIFT match", imgmatch);
+    imwrite("siftmatches.png", imgmatch);
     
     return 0;
 }
