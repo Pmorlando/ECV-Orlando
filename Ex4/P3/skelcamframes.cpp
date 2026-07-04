@@ -1,5 +1,7 @@
 // modified from previous examples by Phil orlando and the OpenCV skeletal.cpp file
-// compiled with ##
+// compiled with g++ -O0 -g -I/usr/local/include/opencv4 skelcamframes.cpp -o skelcamframes -L/usr/local/lib `pkg-config --libs opencv4`
+
+
 
 
 #include <stdio.h>
@@ -56,7 +58,7 @@ int main(int argc, char **argv)
         Mat temp, eroded;
         Mat element = getStructuringElement(MORPH_CROSS, Size(3,3));
         bool done;
-        int interations = 0;
+        int iterations = 0;
 
         do
         {
@@ -67,8 +69,8 @@ int main(int argc, char **argv)
             eroded.copyTo(mfblur);
 
             done = (countNonZero(mfblur) == 0);
-            iterations++
-        } while (!done && (interations < 100));
+            iterations++;
+        } while (!done && (iterations < 100));
 
 
         sprintf(skeletalframe, "skelframe%04d.pgm", framecnt);
@@ -77,9 +79,9 @@ int main(int argc, char **argv)
         framecnt++;
 
         imshow("Cam",frame);
-        imshow("Skeletal", skel)
+        imshow("Skeletal", skel);
 
-        if(waitKey(10)== ESCAPE_KEY) break;
+        if(waitKey(20)== ESCAPE_KEY) break;
     }
     return 0;
 }
