@@ -49,17 +49,17 @@ int main(int argc, char** argv)
     }
 
     Mat imgmatch;
-    for(good.size() >= 4)
+    if(good.size() >= 4)
     {
         vector<Point2f> ptsBook, ptsScene;
         for(const auto& a : good)
         {
-            ptsBook.push_back(kpsBook[mqueryIdx].pt);
-            ptsScene.push_back(kpsScene[mqueryIdx].pt);
+            ptsBook.push_back(kpsBook[a.queryIdx].pt);
+            ptsScene.push_back(kpsScene[a.trainIdx].pt);
         }
         Mat H = findHomography(ptsBook, ptsScene, RANSAC);
 
-        vector<Points2f> corners(4). sceneCorners(4);
+        vector<Point2f> corners(4), sceneCorners(4);
         corners[0] = Point2f(0, 0);
         corners[1] = Point2f((float)book.cols, 0);
         corners[2] = Point2f((float)book.cols, (float)book.rows);
@@ -74,8 +74,7 @@ int main(int argc, char** argv)
         line(imgmatch, sceneCorners[2] + offset, sceneCorners[3] + offset, Scalar(0,255,0), 3);
         line(imgmatch, sceneCorners[3] + offset, sceneCorners[0] + offset, Scalar(0,255,0), 3);
     }
-    imshow("SIFT match", imgmatch);
-    imwrite("siftmatches.png", imgmatch);
+    imwrite("orbmatches.png", imgmatch);
     
     return 0;
 }
