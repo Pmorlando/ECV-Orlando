@@ -42,9 +42,13 @@ int main(int argc, char** argv)
         if(frame.empty()) break; //for end of file 
 
         cvtColor(frame, gray, COLOR_BGR2GRAY);
+        
+        //ignoring sky of the image to remove tree noise
+        Rect roi(0, gray.rows/2, gray.cols, gray.rows/2);
+        Mat roiGray = gray(roi);
 
         // Edge detection
-        Canny(gray, dst, 100, 215, 3); //changed to 100 lower thresh  and 215 upper to reduce lines 
+        Canny(roiGray, dst, 100, 215, 3); //changed to 100 lower thresh  and 215 upper to reduce lines 
         // Copy edges to the images that will display the results in BGR
         cvtColor(dst, cdst, COLOR_GRAY2BGR);
         cdstP = cdst.clone();
