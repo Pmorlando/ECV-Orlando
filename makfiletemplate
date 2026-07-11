@@ -1,0 +1,38 @@
+TARGET = CHANGETHIS TO WHAT EVER FILENAME IS
+
+INCLUDE_DIRS = -I/usr/local/include/opencv4
+LIB_DIRS = -L/usr/local/lib
+CC = g++
+
+CDEFS =
+CFLAGS = -O0 -g $(INCLUDE_DIRS) $(CDEFS)
+LIBS = -lrt -lpthread
+
+CPPLIBS = $(LIB_DIRS) `pkg-config --libs opencv4`
+
+HFILES =
+CFILES =
+CPPFILES = $(TARGET).cpp
+
+SRCS = ${HFILES} ${CFILES}
+CPPOBJS = ${CPPFILES:.cpp=.o}
+
+all:	$(TARGET)
+
+clean:
+	-rm -f *.o *.d
+	-rm -f $(TARGET)
+
+distclean:
+	-rm -f *.o *.d
+
+$(TARGET): $(TARGET).o
+	$(CC) $(CFLAGS) -o $@ $@.o $(CPPLIBS) $(LIBS)
+
+depend:
+
+.c.o:
+	$(CC) $(CFLAGS) -c $
+
+.cpp.o:
+	$(CC) $(CFLAGS) -c $
