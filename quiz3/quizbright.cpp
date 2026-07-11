@@ -1,5 +1,7 @@
 // modified from Brighten.cpp by Phil Orlando for Quiz 3
 
+// compiled with g++ -O0 -g -I/usr/local/include/opencv4 quizbright.cpp -o quizbright -L/usr/local/lib `pkg-config --libs opencv4`
+
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/core.hpp>
@@ -8,7 +10,8 @@
 #define NUM_THREADS 4
 
 using namespace cv; using namespace std;
-double alpha=2.0;  int beta=50;  /* contrast and brightness control */
+double alpha=2.0;  int betaval=50;  /* contrast and brightness control */
+// ran into compiling error for a while trying to get this wor work with the beta variable name 
 
 typedef struct 
 {
@@ -33,7 +36,7 @@ void *brighten(void *threadp)
         for( int x = 0; x < threadParams->src->cols; x++ ) // cols 
         { 
             for( int c = 0; c < 3; c++ ) // each color channel
-                threadParams->done->at<Vec3b>(y,x)[c] = saturate_cast<uchar>( alpha*( threadParams->src->at<Vec3b>(y,x)[c] ) + beta );
+                threadParams->done->at<Vec3b>(y,x)[c] = saturate_cast<uchar>( alpha*( threadParams->src->at<Vec3b>(y,x)[c] ) + betaval );
         }
     }
     return NULL;
@@ -58,7 +61,7 @@ int main( int argc, char** argv )
        threadParams[i].thread_id = i;
 
        pthread_create(&threads[i],   // pointer to thread descriptor
-                      (void *)0,     // use default attributes
+                      NULL,     // use default attributes
                       brighten, // thread function entry point
                       (void *)&(threadParams[i]) // parameters to pass in
                      );
