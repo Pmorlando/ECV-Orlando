@@ -1,5 +1,5 @@
 // written by by Phil Orlando for the Final Project
-//compiled with g++ -O0 -g -I/usr/local/include/opencv4 4cardmatch.cpp -o 4cardmatch -L/usr/local/lib `pkg-config --libs opencv4`
+//compiled with g++ -O0 -g -I/usr/local/include/opencv4 1cardmatch.cpp -o 1cardmatch -L/usr/local/lib `pkg-config --libs opencv4`
 
 
 #include <opencv2/opencv.hpp>
@@ -49,7 +49,7 @@ string Matchcard(Mat cardcorner)
     	printf("card recognized is below threshold");
     	break;
     }
-    else return highestlabel;  
+    else return highestlabel;  // change to card, max val, and max loc 
 }
 
 
@@ -76,16 +76,8 @@ vector<Cardtemp> loadtemp(vector<string> labels, string tempname)
 int main(int argc, char** argv)
 {
     // addinhg in all templates for later testing
-    // cards = loadtemp(labels,tempname);
+    cards = loadtemp(labels,tempname);
 
-    
-
-
-    Mat temp8 = imread("8temp.JPG", IMREAD_GRAYSCALE); // template file of cropped 8 corner
-    Mat temp9 = imread("9temp.JPG", IMREAD_GRAYSCALE); // template file of cropped 9 corner
-    Mat temp10 = imread("10temp.JPG", IMREAD_GRAYSCALE); // template file of cropped 10 corner
-    Mat tempQ = imread("Qtemp.JPG", IMREAD_GRAYSCALE); // template file of cropped Queen corner
-    // need to add better way to load all the templates
     Mat table = imread("table1.jpg", IMREAD_GRAYSCALE); // table file for testing using upright images of cards
 
     if(temp8.empty() || temp9.empty() || temp10.empty() || tempQ.empty() || table.empty())
@@ -94,26 +86,26 @@ int main(int argc, char** argv)
         return -1;
     }
     
-    Mat result8, result9, result10, resultQ;
-    int method = TM_CCOEFF_NORMED;
-
-    //will be replaced by the match function
-    matchTemplate(table, temp8,  result8, method);
-    matchTemplate(table, temp9,  result9, method);
-    matchTemplate(table, temp10,  result10, method);
-    matchTemplate(table, tempQ,  resultQ, method);
-
-    double maxval8, maxval9, maxval10, maxvalQ; // will use this for threshold of knowing which card it is
+    // need card isolator to find number of cards on screen
     
-
+    // then for loop for number of card and take the pixels from that card, straighten them
+    // and then run each card through the match
+    // need to adjust to output maxloc from the match so I can block the card value and where for testing reliability
+    
+    
+    
+    for(int i : Numcards)
+    {
+    	// card1 card2 card3 string initilize
+    	
+    }
+    
+    
     Point maxloc8, maxloc9, maxloc10, maxlocQ; // just for location of where the box is drawn
+    // need from the match function
 
-    minMaxLoc(result8, NULL, &maxval8, NULL, &maxloc8);
-    minMaxLoc(result9, NULL, &maxval9, NULL, &maxloc9);
-    minMaxLoc(result10, NULL, &maxval10, NULL, &maxloc10);
-    minMaxLoc(resultQ, NULL, &maxvalQ, NULL, &maxlocQ);
 
-    printf("8 max %f, 9 max %f, 10 max %f, Queen max %f\n", maxval8, maxval9, maxval10, maxvalQ);
+    printf("8 max %f, 9 max %f, 10 max %f, Queen max %f\n", maxval8, maxval9, maxval10, maxvalQ); // get rid of 
 
     Mat fin8, fin9, fin10, finQ; // for drawing the box around what it found 
     fin8 = table.clone();
@@ -121,7 +113,7 @@ int main(int argc, char** argv)
     fin10 = table.clone();
     finQ = table.clone();
 
-    // drawing just for testing now
+    // drawing put in for loop for num of cards 
     rectangle(fin8, maxloc8, Point(maxloc8.x + temp8.cols, maxloc8.y + temp8.rows), Scalar(0, 255, 0), 2);
     rectangle(fin9, maxloc9, Point(maxloc9.x + temp9.cols, maxloc9.y + temp9.rows), Scalar(0, 255, 0), 2);
     rectangle(fin10, maxloc10, Point(maxloc10.x + temp10.cols, maxloc10.y + temp10.rows), Scalar(0, 255, 0), 2);
