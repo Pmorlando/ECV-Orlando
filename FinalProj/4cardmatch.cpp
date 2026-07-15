@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     Mat temp10 = imread("10temp.JPG", IMREAD_GRAYSCALE); // template file of cropped 10 corner
     Mat tempQ = imread("Qtemp.JPG", IMREAD_GRAYSCALE); // template file of cropped Queen corner
     // need to add better way to load all the templates
-    Mat table = imread("table4.jpg", IMREAD_GRAYSCALE); // table file for testing using upright images of cards
+    Mat table = imread("table1.jpg", IMREAD_GRAYSCALE); // table file for testing using upright images of cards
 
     if(temp8.empty() || temp9.empty() || temp10.empty() || tempQ.empty() || table.empty())
     {
