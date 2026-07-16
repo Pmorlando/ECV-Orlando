@@ -126,7 +126,7 @@ int main(int argc, char** argv)
     vector<Cardtemp> cardtemplates = loadtemp(labels,tempname);
     
     Mat tablecolor = imread("table1.jpg", IMREAD_COLOR); // table file for testing using upright images of cards
-    Mat table = imread("table3.jpg", IMREAD_GRAYSCALE); 
+    Mat table = imread("table1.jpg", IMREAD_GRAYSCALE); 
 
     if(table.empty())
     {
