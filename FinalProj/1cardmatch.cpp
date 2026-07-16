@@ -143,6 +143,10 @@ int main(int argc, char** argv)
 
     blur(table, blurtable, Size(3,3));
     Canny(blurtable, cannyedge, lowthresh, lowthresh*ratioval, kernel_size);
+    
+    // added visual
+    imshow("Canny edges", cannyedge);
+    waitKey(0);
 
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
     // was finding doubles for the cards and external should fix it 
@@ -163,6 +167,15 @@ int main(int argc, char** argv)
 
         cardcontours.push_back(contours[i]); // make new list of the cards contours only
     }
+
+    // added visual
+    Mat contourdisp=tablecolor.clone();
+    drawContours(contourdisp, cardcontours, -1, Scalar(0,0,255), 1);
+    imshow("Contours of cards", contourdisp);
+    waitKey(0);
+
+
+
     // get contours to 4 corner points 
     for(size_t j = 0; j < cardcontours.size();j++)
     {
@@ -177,6 +190,8 @@ int main(int argc, char** argv)
         
     }
 
+    
+
     int numcards = cardcorners.size();
 
     // order the corner points by top l top r bottom l bottom r
@@ -189,6 +204,18 @@ int main(int argc, char** argv)
         // perspectiive transform to straighten cards out for reading
         vector<Point2f> srcpts = cornerorder(cardcorners[i]);
         // making sure order is right
+
+        // added visual
+        Mat cornerdisp=tablecolor.clone();
+        for (int i = 0; i < numcards; i++) {
+            vector<Point2f> srcpts = cornerorder(cardcorners[i]);
+            circle(cornerdisp, srcpts[0], 6, Scalar(0,0,255), -1);   // TL = red
+            circle(cornerdisp, srcpts[1], 6, Scalar(0,255,0), -1);   // TR = green
+            circle(cornerdisp, srcpts[2], 6, Scalar(255,0,0), -1);   // BL = blue
+            circle(cornerdisp, srcpts[3], 6, Scalar(0,255,255), -1); // BR = yellow
+        }
+        imshow("Corner order check", cornerDisplay);
+        waitKey(0);
 
         printf(" top left (%f, %f) top right (%f, %f) bottom left (%f, %f) bottom right (%f, %f)\n",
                 srcpts[0].x, srcpts[0].y,
@@ -206,12 +233,24 @@ int main(int argc, char** argv)
         cardsisolated.push_back(warped);
     }
 
+    // added visual
+    for (int i = 0; i < numcards; i++) {
+        imshow("Isolated card " + to_string(i), cardsisolated[i]);
+    }
+    waitKey(0);
+
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
         Rect cornercard(0, 0, cardsisolated[i].cols * .25, cardsisolated[i].rows * .25); // test and adjust if getting errors
         Mat corner = cardsisolated[i](cornercard);
         TLofcards.push_back(corner);
     }
+
+    // added visual
+    for (size_t i = 0; i < TLofcards.size(); i++) {
+        imshow("Corner crop " + to_string(i), TLofcards[i]);
+    }
+    waitKey(0);
     
     // matching put here with TLofCards and cardtemp. 
     vector<Matchresult> foundcards;
