@@ -29,14 +29,14 @@ struct Matchresult {
     Point maxloc;
 };
 
-double cardthresh = 0.70; // fine tine with more testing
+double cardthresh = 0.40; // fine tine with more testing
 
-int lowthresh = 200; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
+int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
 int ratioval = 3;
 int kernel_size = 3;
 
 int maxcont = 90000;
-int mincont = 82000;
+int mincont = 80000;
 
 Matchresult Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
 {
@@ -126,7 +126,7 @@ int main(int argc, char** argv)
     vector<Cardtemp> cardtemplates = loadtemp(labels,tempname);
 
     Mat tablecolor = imread("table1.jpg", IMREAD_COLOR); // table file for testing using upright images of cards
-    Mat table = imread("table1.jpg", IMREAD_GRAYSCALE); 
+    Mat table = imread("table3.jpg", IMREAD_GRAYSCALE); 
 
     if(table.empty())
     {
@@ -146,14 +146,15 @@ int main(int argc, char** argv)
 
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
     // was finding doubles for the cards and external should fix it 
-    /* testing contour area to get min and max contour
+    // testing contour area to get min and max contour
+    
     for(size_t i = 0; i < contours.size();i++)
     {
         double area = contourArea(contours[i]);
         printf("contour %zu area is %f\n",i, area); // issue with printing i so need zu
         
     }
-    */
+    
     // contour filter to keep only contours about the size of the cards 
     for(size_t i = 0; i < contours.size();i++)
     {
@@ -207,7 +208,7 @@ int main(int argc, char** argv)
 
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
-        Rect cornercard(0, 0, cardsisolated[i].cols * .15, cardsisolated[i].rows * .25); // test and adjust if getting errors
+        Rect cornercard(0, 0, cardsisolated[i].cols * .25, cardsisolated[i].rows * .25); // test and adjust if getting errors
         Mat corner = cardsisolated[i](cornercard);
         TLofcards.push_back(corner);
     }
@@ -216,6 +217,7 @@ int main(int argc, char** argv)
     vector<Matchresult> foundcards;
     for(size_t i =0; i <TLofcards.size();i++)
     {
+        
         Matchresult thiscard = Matchcard(TLofcards[i], cardtemplates);
 
         printf("card value %s, correlation, %f, location (%d, %d)\n", 
@@ -231,7 +233,7 @@ int main(int argc, char** argv)
 
 
         rectangle(tablecolor, cardcorners[i][0], cardcorners[i][3], Scalar(0,255,0), 2); // draw rectangle around the cards
-        putText(tablecolor, thiscard.value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y + 20), FONT_HERSHEY_SIMPLEX, 2.0, Scalar(0, 255, 0), 2); // draw which value
+        putText(tablecolor, thiscard.value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 2.0, Scalar(0, 255, 0), 2); // draw which value
         // helps will testing of reliability where each frame will be labeled and found 
         
     }
