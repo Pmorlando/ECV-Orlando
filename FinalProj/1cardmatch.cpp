@@ -124,7 +124,7 @@ int main(int argc, char** argv)
     
     // adding in all templates for later testing
     vector<Cardtemp> cardtemplates = loadtemp(labels,tempname);
-
+    
     Mat tablecolor = imread("table1.jpg", IMREAD_COLOR); // table file for testing using upright images of cards
     Mat table = imread("table3.jpg", IMREAD_GRAYSCALE); 
 
@@ -138,27 +138,27 @@ int main(int argc, char** argv)
     vector<vector<Point>> cardcontours;
     vector<vector<Point>> cardcorners;
     vector<Vec4i> hierarchy;
+    
+    // for later visual
+    Mat cornerdisp=tablecolor.clone();
 
     // blur table and canny edge detect to find the cards
 
     blur(table, blurtable, Size(3,3));
     Canny(blurtable, cannyedge, lowthresh, lowthresh*ratioval, kernel_size);
     
-    // added visual
-    imshow("Canny edges", cannyedge);
-    waitKey(0);
 
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
     // was finding doubles for the cards and external should fix it 
     // testing contour area to get min and max contour
-    
+    /*
     for(size_t i = 0; i < contours.size();i++)
     {
         double area = contourArea(contours[i]);
         printf("contour %zu area is %f\n",i, area); // issue with printing i so need zu
         
     }
-    
+    */
     // contour filter to keep only contours about the size of the cards 
     for(size_t i = 0; i < contours.size();i++)
     {
@@ -206,7 +206,7 @@ int main(int argc, char** argv)
         // making sure order is right
 
         // added visual
-        Mat cornerdisp=tablecolor.clone();
+        
         for (int i = 0; i < numcards; i++) {
             vector<Point2f> srcpts = cornerorder(cardcorners[i]);
             circle(cornerdisp, srcpts[0], 6, Scalar(0,0,255), -1);   // TL = red
@@ -214,8 +214,7 @@ int main(int argc, char** argv)
             circle(cornerdisp, srcpts[2], 6, Scalar(255,0,0), -1);   // BL = blue
             circle(cornerdisp, srcpts[3], 6, Scalar(0,255,255), -1); // BR = yellow
         }
-        imshow("Corner order check", cornerDisplay);
-        waitKey(0);
+        
 
         printf(" top left (%f, %f) top right (%f, %f) bottom left (%f, %f) bottom right (%f, %f)\n",
                 srcpts[0].x, srcpts[0].y,
@@ -232,6 +231,9 @@ int main(int argc, char** argv)
 
         cardsisolated.push_back(warped);
     }
+    
+    imshow("Corner order check", cornerdisp);
+    waitKey(0);
 
     // added visual
     for (int i = 0; i < numcards; i++) {
@@ -241,7 +243,7 @@ int main(int argc, char** argv)
 
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
-        Rect cornercard(0, 0, cardsisolated[i].cols * .25, cardsisolated[i].rows * .25); // test and adjust if getting errors
+        Rect cornercard(0, 0, cardsisolated[i].cols * .2, cardsisolated[i].rows * .2); // test and adjust if getting errors
         Mat corner = cardsisolated[i](cornercard);
         TLofcards.push_back(corner);
     }
@@ -286,26 +288,11 @@ int main(int argc, char** argv)
 
     /* to do
     variable clean up put in header to clear the main function up
-    timing to see how long each frame will roughly take
     add the foundcards processing for black jack
     once can handle players hand then using the cardcorners locations to differentiate dealer and player
     add play reccomendations via put text and maybe syslog
     add counter for when the value of card is not found and syslog for it
     read video so i can actually test framerate
-
-
-
-
-    to test, 
-    matching function
-    everything
-
-    car threshold for reading them
-    contour size
-    approx poly epsilon value
-    if corner order works 
-    
-
     
     */
     closelog();
