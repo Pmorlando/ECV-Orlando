@@ -29,7 +29,7 @@ struct Matchresult {
     Point maxloc;
 };
 
-double cardthresh = 0.40; // fine tine with more testing
+double cardthresh = 0.80; // fine tine with more testing
 
 int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
 int ratioval = 3;
@@ -125,8 +125,8 @@ int main(int argc, char** argv)
     // adding in all templates for later testing
     vector<Cardtemp> cardtemplates = loadtemp(labels,tempname);
     
-    Mat tablecolor = imread("table1.jpg", IMREAD_COLOR); // table file for testing using upright images of cards
-    Mat table = imread("table1.jpg", IMREAD_GRAYSCALE); 
+    Mat tablecolor = imread("table5.jpg", IMREAD_COLOR); // table file for testing using upright images of cards
+    Mat table = imread("table5.jpg", IMREAD_GRAYSCALE); 
 
     if(table.empty())
     {
@@ -146,6 +146,10 @@ int main(int argc, char** argv)
 
     blur(table, blurtable, Size(3,3));
     Canny(blurtable, cannyedge, lowthresh, lowthresh*ratioval, kernel_size);
+    
+    // added visual
+    imshow("canny edge",cannyedge);
+    waitKey(0);
     
 
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
@@ -170,7 +174,7 @@ int main(int argc, char** argv)
 
     // added visual
     Mat contourdisp=tablecolor.clone();
-    drawContours(contourdisp, cardcontours, -1, Scalar(0,0,255), 1);
+    drawContours(contourdisp, cardcontours, -1, Scalar(0,255,0), 1);
     imshow("Contours of cards", contourdisp);
     waitKey(0);
 
@@ -243,7 +247,7 @@ int main(int argc, char** argv)
 
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
-        Rect cornercard(0, 0, cardsisolated[i].cols * .2, cardsisolated[i].rows * .2); // test and adjust if getting errors
+        Rect cornercard(0, 0, cardsisolated[i].cols * .13, cardsisolated[i].rows * .17); // test and adjust if getting errors
         Mat corner = cardsisolated[i](cornercard);
         TLofcards.push_back(corner);
     }
