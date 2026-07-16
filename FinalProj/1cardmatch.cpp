@@ -29,16 +29,16 @@ struct Matchresult {
     Point maxloc;
 };
 
-double cardthresh = 0.80; // fine tine with more testing
+double cardthresh = 0.70; // fine tine with more testing
 
-int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
-int ratio = 3;
+int lowthresh = 200; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
+int ratioval = 3;
 int kernel_size = 3;
 
-int maxcont = 10;
-int mincont = 9;
+int maxcont = 90000;
+int mincont = 82000;
 
-string Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
+Matchresult Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
 {
     Matchresult bestcard; // using struct to store the multiple values for each card i want
     bestcard.maxval = 0;
@@ -65,7 +65,7 @@ string Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
     	printf("card recognized is below threshold\n");
     	bestcard.value = ""; // set the stored card value to nothing 
     }
-    return bestcard;  // change to card, max val, and max loc 
+    return bestcard; 
 }
 
 
@@ -117,7 +117,7 @@ vector<Point2f> cornerorder(vector<Point>& pts)
 int main(int argc, char** argv)
 {
     // syslog for timing check to get initial wcet
-    openlog("BlackJack_cv". LOG_PID, LOG_USER);
+    openlog("BlackJack_cv", LOG_PID, LOG_USER);
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
     
@@ -133,7 +133,7 @@ int main(int argc, char** argv)
         printf("error loading test table image");
         return -1;
     }
-    Mat blur, cannyedge;
+    Mat blurtable, cannyedge;
     vector<vector<Point>> contours;
     vector<vector<Point>> cardcontours;
     vector<vector<Point>> cardcorners;
@@ -141,19 +141,19 @@ int main(int argc, char** argv)
 
     // blur table and canny edge detect to find the cards
 
-    blur(table, cannyedge, Size(3,3));
-    Canny(cannyedge, cannyedge, lowthresh, lowthresh*ratio, kernel_size);
+    blur(table, blurtable, Size(3,3));
+    Canny(blurtable, cannyedge, lowthresh, lowthresh*ratioval, kernel_size);
 
-    findContours(cannyedge, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
-    
-    // testing contour area to get min and max contour
+    findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
+    // was finding doubles for the cards and external should fix it 
+    /* testing contour area to get min and max contour
     for(size_t i = 0; i < contours.size();i++)
     {
         double area = contourArea(contours[i]);
         printf("contour %zu area is %f\n",i, area); // issue with printing i so need zu
         
     }
-
+    */
     // contour filter to keep only contours about the size of the cards 
     for(size_t i = 0; i < contours.size();i++)
     {
@@ -207,7 +207,7 @@ int main(int argc, char** argv)
 
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
-        Rect cornercard(0, 0, cardsisolated[i].cols * .25, cardsisolated[i].rows * .25); // test and adjust if getting errors
+        Rect cornercard(0, 0, cardsisolated[i].cols * .15, cardsisolated[i].rows * .25); // test and adjust if getting errors
         Mat corner = cardsisolated[i](cornercard);
         TLofcards.push_back(corner);
     }
@@ -218,7 +218,7 @@ int main(int argc, char** argv)
     {
         Matchresult thiscard = Matchcard(TLofcards[i], cardtemplates);
 
-        printf("card value %s, correlation, %f, location (%f, %f)\n", 
+        printf("card value %s, correlation, %f, location (%d, %d)\n", 
                 thiscard.value.c_str(),
                 thiscard.maxval,
                 thiscard.maxloc.x, thiscard.maxloc.y
@@ -238,7 +238,7 @@ int main(int argc, char** argv)
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     double dt = (end.tv_sec - start.tv_sec)*1000.0 + (end.tv_nsec - start.tv_nsec)/1e6;
-    syslog(LOG_INFO, "frame process time %.3f ms", dt)
+    syslog(LOG_INFO, "frame process time %.3f ms", dt);
 
     imshow("Blackjack table with found cards", tablecolor);
 
