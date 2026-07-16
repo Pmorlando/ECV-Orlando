@@ -13,7 +13,7 @@
 using namespace cv;
 using namespace std;
 
-
+string tablefile = "table7.jpg";
 
 vector<string> labels = {"A","2","3","4","5","6","7","8","9","10","J","Q","K"}; // all the card values
 string tempname = "temp.JPG";
@@ -29,13 +29,13 @@ struct Matchresult {
     Point maxloc;
 };
 
-double cardthresh = 0.80; // fine tine with more testing
+double cardthresh = 0.50; // fine tine with more testing
 
 int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
 int ratioval = 3;
 int kernel_size = 3;
 
-int maxcont = 90000;
+int maxcont = 110000;
 int mincont = 80000;
 
 Matchresult Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
@@ -122,11 +122,25 @@ int main(int argc, char** argv)
     clock_gettime(CLOCK_MONOTONIC, &start);
     
     
+    if(argc < 2)
+    {
+    	Mat tablecolor = imread(tablefile, IMREAD_COLOR); // table file for testing using upright images of cards
+    	Mat table = imread(tablefile, IMREAD_GRAYSCALE);
+    	printf("no file passed going with %s\n",tablefile.c_str());
+    }
+    else
+    {
+    	string inputfile = argv[1];
+    	Mat tablecolor = imread(inputfile, IMREAD_COLOR); // table file for testing using upright images of cards
+    	Mat table = imread(inputfile, IMREAD_GRAYSCALE);
+    	printf("using input file %s\n",inputfile.c_str());
+    }
+    
     // adding in all templates for later testing
     vector<Cardtemp> cardtemplates = loadtemp(labels,tempname);
     
-    Mat tablecolor = imread("table5.jpg", IMREAD_COLOR); // table file for testing using upright images of cards
-    Mat table = imread("table5.jpg", IMREAD_GRAYSCALE); 
+    Mat tablecolor = imread(tablefile, IMREAD_COLOR); // table file for testing using upright images of cards
+    Mat table = imread(tablefile, IMREAD_GRAYSCALE); 
 
     if(table.empty())
     {
@@ -155,14 +169,14 @@ int main(int argc, char** argv)
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
     // was finding doubles for the cards and external should fix it 
     // testing contour area to get min and max contour
-    /*
+    
     for(size_t i = 0; i < contours.size();i++)
     {
         double area = contourArea(contours[i]);
         printf("contour %zu area is %f\n",i, area); // issue with printing i so need zu
         
     }
-    */
+    
     // contour filter to keep only contours about the size of the cards 
     for(size_t i = 0; i < contours.size();i++)
     {
