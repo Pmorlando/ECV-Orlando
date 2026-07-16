@@ -6,6 +6,8 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/calib3d.hpp>
 #include <iostream>
+#include <syslog.h>
+#include <string>
 
 
 using namespace cv;
@@ -114,6 +116,12 @@ vector<Point2f> cornerorder(vector<Point>& pts)
 
 int main(int argc, char** argv)
 {
+    // syslog for timing check to get initial wcet
+    openlog("BlackJack_cv". LOG_PID, LOG_USER);
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    
+    
     // adding in all templates for later testing
     vector<Cardtemp> cardtemplates = loadtemp(labels,tempname);
 
@@ -159,7 +167,7 @@ int main(int argc, char** argv)
     {
         double perimeter = arcLength(cardcontours[j], true); // finding the arclength of the contours that are closed
         vector<Point> corners;
-        approxPolyDP(cardcontours[j], corners, 0.02 *perimeter, true); 
+        approxPolyDP(cardcontours[j], corners, 0.02 *perimeter, true); // adjsut 0.2 
 
         if(corners.size() != 4) continue;
 
@@ -227,6 +235,11 @@ int main(int argc, char** argv)
         // helps will testing of reliability where each frame will be labeled and found 
         
     }
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double dt = (end.tv_sec - start.tv_sec)*1000.0 + (end.tv_nsec - start.tv_nsec)/1e6;
+    syslog(LOG_INFO, "frame process time %.3f ms", dt)
+
     imshow("Blackjack table with found cards", tablecolor);
 
 
@@ -238,9 +251,24 @@ int main(int argc, char** argv)
     add play reccomendations via put text and maybe syslog
     add counter for when the value of card is not found and syslog for it
     read video so i can actually test framerate
+
+
+
+
+    to test, 
+    matching function
+    everything
+
+    car threshold for reading them
+    contour size
+    approx poly epsilon value
+    if corner order works 
+    
+
     
     */
-
+    closelog();
     waitKey(0);
     return 0;
+    
 }
