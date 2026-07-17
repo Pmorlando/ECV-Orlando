@@ -271,7 +271,7 @@ int main(int argc, char** argv)
 
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
-        Rect cornercard(0, 0, cardsisolated[i].cols * .13, cardsisolated[i].rows * .16); // test and adjust if getting errors
+        Rect cornercard(0, 0, cardsisolated[i].cols * .26, cardsisolated[i].rows * .32); // test and adjust if getting errors
         Mat corner = cardsisolated[i](cornercard);
         TLofcards.push_back(corner);
     }
