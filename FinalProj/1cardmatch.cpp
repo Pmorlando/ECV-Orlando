@@ -29,7 +29,7 @@ struct Matchresult {
     Point maxloc;
 };
 
-double cardthresh = 0.50; // fine tine with more testing
+double cardthresh = 0.20; // fine tine with more testing
 
 int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
 int ratioval = 3;
@@ -40,6 +40,10 @@ int mincont = 80000;
 
 Matchresult Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
 {
+    Mat binarycorner;
+    threshold(cardcorner, binarycorner, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
+    
+    
     Matchresult bestcard; // using struct to store the multiple values for each card i want
     bestcard.maxval = 0;
     bestcard.value = "";
@@ -47,11 +51,12 @@ Matchresult Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
     for(auto& i : cards)
     {
     	Mat result;
-    	matchTemplate(cardcorner, i.img, result, TM_CCOEFF_NORMED);
+    	matchTemplate(binarycorner, i.img, result, TM_CCOEFF_NORMED);
 
     	double maxval;
         Point maxloc;
     	minMaxLoc(result, NULL, &maxval, NULL, &maxloc); // finding the max correlation and where it is on the card
+    	printf(" %s: %f\n", i.value.c_str(), maxval);
 
     	if(maxval > bestcard.maxval)
     	{
@@ -82,7 +87,12 @@ vector<Cardtemp> loadtemp(vector<string> labels, string tempname)
             printf("failed to load %s\n", val.c_str()); 
             continue;             
         }
-        out.push_back({val, img});
+        
+        // adding binary thresh to get better matching hopefully
+        Mat binarytemp;
+        threshold(img, binarytemp, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
+        
+        out.push_back({val, binarytemp});
 
     }
     return out;
@@ -121,26 +131,26 @@ int main(int argc, char** argv)
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
     
+    Mat table, tablecolor;
     
     if(argc < 2)
     {
-    	Mat tablecolor = imread(tablefile, IMREAD_COLOR); // table file for testing using upright images of cards
-    	Mat table = imread(tablefile, IMREAD_GRAYSCALE);
+    	tablecolor = imread(tablefile, IMREAD_COLOR); // table file for testing using upright images of cards
+    	table = imread(tablefile, IMREAD_GRAYSCALE);
     	printf("no file passed going with %s\n",tablefile.c_str());
     }
     else
     {
     	string inputfile = argv[1];
-    	Mat tablecolor = imread(inputfile, IMREAD_COLOR); // table file for testing using upright images of cards
-    	Mat table = imread(inputfile, IMREAD_GRAYSCALE);
+    	tablecolor = imread(inputfile, IMREAD_COLOR); // table file for testing using upright images of cards
+    	table = imread(inputfile, IMREAD_GRAYSCALE);
     	printf("using input file %s\n",inputfile.c_str());
     }
     
     // adding in all templates for later testing
     vector<Cardtemp> cardtemplates = loadtemp(labels,tempname);
     
-    Mat tablecolor = imread(tablefile, IMREAD_COLOR); // table file for testing using upright images of cards
-    Mat table = imread(tablefile, IMREAD_GRAYSCALE); 
+ 
 
     if(table.empty())
     {
@@ -199,7 +209,7 @@ int main(int argc, char** argv)
     {
         double perimeter = arcLength(cardcontours[j], true); // finding the arclength of the contours that are closed
         vector<Point> corners;
-        approxPolyDP(cardcontours[j], corners, 0.02 *perimeter, true); // adjsut 0.2 
+        approxPolyDP(cardcontours[j], corners, 0.02 *perimeter, true); // 0.2 working
 
         if(corners.size() != 4) continue;
 
@@ -261,7 +271,7 @@ int main(int argc, char** argv)
 
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
-        Rect cornercard(0, 0, cardsisolated[i].cols * .13, cardsisolated[i].rows * .17); // test and adjust if getting errors
+        Rect cornercard(0, 0, cardsisolated[i].cols * .13, cardsisolated[i].rows * .16); // test and adjust if getting errors
         Mat corner = cardsisolated[i](cornercard);
         TLofcards.push_back(corner);
     }
