@@ -16,11 +16,11 @@ using namespace std;
 string tablefile = "table7.jpg";
 
 vector<string> labels = {"A","2","3","4","5","6","7","8","9","10","J","Q","K"}; // all the card values
-string tempname = "temp.jpg";
 // going to try a template of only 13 cards with the template only the corner of the card 
+// now trying more cards and see how fast we can get this with 4 sames per card
 struct Cardtemp {
     string value;
-    Mat img;
+    vector<Mat> imgs;
 };
 
 struct Matchresult {
@@ -76,23 +76,31 @@ Matchresult Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
 
 // better loading for all templates in the struct with the value and label 
 
-vector<Cardtemp> loadtemp(vector<string> labels, string tempname) 
+vector<Cardtemp> loadtemp(vector<string> labels) 
 {
     vector<Cardtemp> out;
     for(auto& val : labels) 
     {
-        Mat img = imread(val + tempname, IMREAD_GRAYSCALE);
-        if(img.empty()) 
-        { 
-            printf("failed to load %s\n", val.c_str()); 
-            continue;             
+        Cardtemp templates;
+        templates.value = val;
+        
+        for(int s =0; s< 4; s++)// hardcoded 4 samples for each
+        {
+            string filename = val + "samp" + to_string(s+1) + ".jpg"; //samp1-4
+            
+            Mat img = imread(val + tempname, IMREAD_GRAYSCALE);
+            if(img.empty()) 
+            { 
+                printf("failed to load %s\n", val.c_str()); 
+                continue;             
+            }
+            
+            Mat binarytemp;
+            threshold(img, binarytemp, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
+            templates.imgs.push_back(binarytemp);
         }
         
-        // adding binary thresh to get better matching hopefully
-        Mat binarytemp;
-        threshold(img, binarytemp, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
-        
-        out.push_back({val, binarytemp});
+        out.push_back(templates);
 
     }
     return out;
@@ -148,7 +156,7 @@ int main(int argc, char** argv)
     }
     
     // adding in all templates for later testing
-    vector<Cardtemp> cardtemplates = loadtemp(labels,tempname);
+    vector<Cardtemp> cardtemplates = loadtemp(labels);
     
  
 
