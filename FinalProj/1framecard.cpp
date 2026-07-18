@@ -13,11 +13,20 @@
 using namespace cv;
 using namespace std;
 
+// constants
 string tablefile = "table7.jpg";
+double scalefactor = 0.5; // testing to make sure it is still finding cards 
+double cardthresh = 0.20; // fine tine with more testing
+int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
+int ratioval = 3;
+int kernel_size = 3;
+int maxcont = 110000;
+int mincont = 80000;
 
 vector<string> labels = {"A","2","3","4","5","6","7","8","9","10","J","Q","K"}; // all the card values
 // going to try a template of only 13 cards with the template only the corner of the card 
-// now trying more cards and see how fast we can get this with 4 sames per card
+// now trying 4 cards per template
+
 struct Cardtemp {
     string value;
     vector<Mat> imgs;
@@ -29,14 +38,6 @@ struct Matchresult {
     Point maxloc;
 };
 
-double cardthresh = 0.20; // fine tine with more testing
-
-int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
-int ratioval = 3;
-int kernel_size = 3;
-
-int maxcont = 110000;
-int mincont = 80000;
 
 Matchresult Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
 {
@@ -144,7 +145,7 @@ int main(int argc, char** argv)
     struct timespec start, end, contourstart, contourend, matchstart, matchend;
     clock_gettime(CLOCK_MONOTONIC, &start);
     
-    Mat table, tablecolor;
+    Mat table, tablecolor, tablesmall;
     
     if(argc < 2)
     {
@@ -170,7 +171,7 @@ int main(int argc, char** argv)
         printf("error loading test table image");
         return -1;
     }
-    Mat blurtable, cannyedge;
+    Mat blurtable, cannyedge, cornerdisp, contourdisp;
     vector<vector<Point>> contours;
     vector<vector<Point>> cardcontours;
     vector<vector<Point>> cardcorners;
@@ -180,11 +181,13 @@ int main(int argc, char** argv)
     clock_gettime(CLOCK_MONOTONIC, &contourstart);
     
     // for later visual
-    Mat cornerdisp=tablecolor.clone();
+    cornerdisp=tablecolor.clone();
+
+    //compress table for card finding
+    resize(table, tablesmall, Size(), scalefactor, scalefactor, INTER_AREA);
 
     // blur table and canny edge detect to find the cards
-
-    blur(table, blurtable, Size(3,3));
+    blur(tablesmall, blurtable, Size(3,3)); // changed to table small for compression
     Canny(blurtable, cannyedge, lowthresh, lowthresh*ratioval, kernel_size);
     
     // added visual
@@ -194,26 +197,30 @@ int main(int argc, char** argv)
 
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
     // was finding doubles for the cards and external should fix it 
-    // testing contour area to get min and max contour
-    
+    // testing contour area to get min and max contour if messing with new images 
+    /*
     for(size_t i = 0; i < contours.size();i++)
     {
         double area = contourArea(contours[i]);
         //printf("contour %zu area is %f\n",i, area); // issue with printing i so need zu
         
     }
-    
+    */
     // contour filter to keep only contours about the size of the cards 
     for(size_t i = 0; i < contours.size();i++)
     {
         double area = contourArea(contours[i]);
-        if(area < mincont || area > maxcont) continue; // skip contours outside the size
+
+        // for compression
+        int minscaled = mincont * scalefactor;
+        int maxscaled = maxcont * scalefactor;
+        if(area < minscaled || area > maxscaled) continue; // skip contours outside the size
 
         cardcontours.push_back(contours[i]); // make new list of the cards contours only
     }
 
     // added visual
-    Mat contourdisp=tablecolor.clone();
+    contourdisp=tablecolor.clone();
     drawContours(contourdisp, cardcontours, -1, Scalar(0,255,0), 1);
     //imshow("Contours of cards", contourdisp);
     //waitKey(0);
@@ -228,6 +235,13 @@ int main(int argc, char** argv)
         approxPolyDP(cardcontours[j], corners, 0.02 *perimeter, true); // 0.2 working
 
         if(corners.size() != 4) continue;
+
+        // for mapping compressed corners back to original image
+        for(auto& i : corners)
+        {
+            i.x = static_cast<int>(i.x/scalefactor);
+            i.y = static_cast<int>(i.y/scalefactor);
+        }
 
         cardcorners.push_back(corners); // list of card 4 corners 
         // printf("card corners %zu\n", cardcorners.size());
@@ -281,10 +295,12 @@ int main(int argc, char** argv)
     //waitKey(0);
 
     // added visual
+    /*
     for (int i = 0; i < numcards; i++) {
         //imshow("Isolated card " + to_string(i), cardsisolated[i]);
     }
-    //waitKey(0);
+    waitKey(0);
+    */
 
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
@@ -301,11 +317,11 @@ int main(int argc, char** argv)
     */
     clock_gettime(CLOCK_MONOTONIC, &contourend);
     clock_gettime(CLOCK_MONOTONIC, &matchstart);
-    // matching put here with TLofCards and cardtemp. 
+
+    // matching  
     vector<Matchresult> foundcards;
     for(size_t i =0; i <TLofcards.size();i++)
     {
-        
         Matchresult thiscard = Matchcard(TLofcards[i], cardtemplates);
 
         printf("card value %s, correlation, %f, location (%d, %d)\n", 
@@ -321,8 +337,8 @@ int main(int argc, char** argv)
 
 
         rectangle(tablecolor, cardcorners[i][0], cardcorners[i][3], Scalar(0,255,0), 2); // draw rectangle around the cards
-        putText(tablecolor, thiscard.value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 2.0, Scalar(0, 255, 0), 2); // draw which value
-        // helps will testing of reliability where each frame will be labeled and found 
+        putText(tablecolor, thiscard.value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // draw which value
+        // +20 puts the label above the box and not over the corner
         
     }
     clock_gettime(CLOCK_MONOTONIC, &matchend);
@@ -339,6 +355,23 @@ int main(int argc, char** argv)
     
 
     imshow("Blackjack table with found cards", tablecolor);
+
+    /*
+    to think about:
+    how to best thread the 6 cores, maybe 1 core per sample in the templates 
+    multi core the blur, canny and contouring stuff 
+    so i guess 2 sections of threading and multicore stuff, need to see size of the resized table to see how to best multi core it 
+
+    maybe put functions to the blur, canny and other stuff to keep main cleaner and easier to follow 
+    maybe 6 core where 5 get 2 cards and 1 gets 3 cards
+
+    check table15 for 4 card speed 
+
+    setNumThreads(6) at begining of main, and setNumThreads(1) before matching and mutithread that 
+
+    
+    */ 
+
 
 
     closelog();
