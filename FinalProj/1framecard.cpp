@@ -16,13 +16,13 @@ using namespace std;
 
 // constants
 string tablefile = "table7.jpg";
-double scalefactor = 0.6; // testing to make sure it is still finding cards 
-double cardthresh = 0.20; // fine tine with more testing
+double scalefactor = 0.75; // testing to make sure it is still finding cards 
+double cardthresh = 0.50; // fine tune with more testing
 int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
 int ratioval = 3;
 int kernel_size = 3;
-int maxcont = 110000;
-int mincont = 80000; // lowered for compressing table
+int maxcont = 60000;
+int mincont = 20000; // lowered for compressing table
 
 vector<string> labels = {"A","2","3","4","5","6","7","8","9","10","J","Q","K"}; // all the card values
 // going to try a template of only 13 cards with the template only the corner of the card 
@@ -100,15 +100,12 @@ struct sortX {
     bool operator() (Point pt1, Point pt2) {return (pt1.x < pt2.x); }
 } mySortX;
 
-
 vector<Point2f> cornerorder(vector<Point>& pts)
 {
     sort(pts.begin(), pts.end(), mySortY); // sorting into upper card corner and bottom
     sort(pts.begin(), pts.begin()+2, mySortX); // sorting top points left to right
     sort(pts.begin()+2, pts.end(), mySortX); // sorting bottom points left and right
-
     vector<Point2f> ordered; 
-
     for(auto& p : pts)
     {
         ordered.push_back(Point2f(p));// put them in ordered list now
@@ -120,27 +117,33 @@ int main(int argc, char** argv)
 {
     // syslog for timing check to get initial wcet
     openlog("BlackJack_cv", LOG_PID, LOG_USER);
-    struct timespec start, end, contourstart, contourend, matchstart, matchend;
+    struct timespec start, end, contourstart, contourend, matchstart, matchend, initstart, initend, loadstart, loadend;
     clock_gettime(CLOCK_MONOTONIC, &start);
+    clock_gettime(CLOCK_MONOTONIC, &initstart);
     
+    // adding in all templates
+    vector<Cardtemp> cardtemplates = loadtemp(labels);
+    clock_gettime(CLOCK_MONOTONIC, &initend);
+    clock_gettime(CLOCK_MONOTONIC, &loadstart);
     Mat table, tablecolor, tablesmall;
     
     if(argc < 2)
     {
     	tablecolor = imread(tablefile, IMREAD_COLOR); // table file for testing using upright images of cards
-    	table = imread(tablefile, IMREAD_GRAYSCALE);
+    	// try convert to speed up
+    	cvtColor(tablecolor, table, COLOR_BGR2GRAY);
+    	//table = imread(tablefile, IMREAD_GRAYSCALE);
     	printf("no file passed going with %s\n",tablefile.c_str());
     }
     else
     {
     	string inputfile = argv[1];
     	tablecolor = imread(inputfile, IMREAD_COLOR); // for overlay at end 
-    	table = imread(inputfile, IMREAD_GRAYSCALE);
+    	// try convert to speed up
+    	cvtColor(tablecolor, table, COLOR_BGR2GRAY);
+    	//table = imread(inputfile, IMREAD_GRAYSCALE);
     	printf("using input file %s\n",inputfile.c_str());
     }
-    
-    // adding in all templates for later testing
-    vector<Cardtemp> cardtemplates = loadtemp(labels);
     
     if(table.empty())
     {
@@ -156,6 +159,7 @@ int main(int argc, char** argv)
     //cornerdisp=tablecolor.clone();
 
     // adding timing for frame manipulation
+    clock_gettime(CLOCK_MONOTONIC, &loadend);
     clock_gettime(CLOCK_MONOTONIC, &contourstart);
     setNumThreads(6);
     //compress table for contour, blur then canny
@@ -169,14 +173,14 @@ int main(int argc, char** argv)
     */
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
     // testing for contour area to get min and max contour if messing with new images 
-    /*
+    
     for(size_t i = 0; i < contours.size();i++)
     {
         double area = contourArea(contours[i]);
         printf("contour %zu area is %f\n",i, area); // issue with printing i so need zu
         
     }
-    */
+    
     // contour filter to keep only contours about the size of the cards 
     for(size_t i = 0; i < contours.size();i++)
     {
@@ -317,6 +321,10 @@ int main(int argc, char** argv)
     // timing math and syslog
     double dt = (end.tv_sec - start.tv_sec)*1000.0 + (end.tv_nsec - start.tv_nsec)/1e6;
     syslog(LOG_INFO, "frame process time %.3f ms", dt);
+    double dtinit = (initend.tv_sec - initstart.tv_sec)*1000.0 + (initend.tv_nsec - initstart.tv_nsec)/1e6;
+    syslog(LOG_INFO, "Template loading time %.3f ms", dtinit);
+    double dtload = (loadend.tv_sec - loadstart.tv_sec)*1000.0 + (loadend.tv_nsec - loadstart.tv_nsec)/1e6;
+    syslog(LOG_INFO, "image loading time %.3f ms", dtload);
     double dtcontour = (contourend.tv_sec - contourstart.tv_sec)*1000.0 + (contourend.tv_nsec - contourstart.tv_nsec)/1e6;
     syslog(LOG_INFO, "contour process time %.3f ms", dtcontour);
     double dtmatch = (matchend.tv_sec - matchstart.tv_sec)*1000.0 + (matchend.tv_nsec - matchstart.tv_nsec)/1e6;
