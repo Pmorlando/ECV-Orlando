@@ -17,13 +17,13 @@ using namespace std;
 
 // constants
 string tablefile = "table7.jpg";
-double scalefactor = 0.8; // testing to make sure it is still finding cards 
+double scalefactor = 0.6; // testing to make sure it is still finding cards 
 double cardthresh = 0.20; // fine tine with more testing
 int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
 int ratioval = 3;
 int kernel_size = 3;
 int maxcont = 110000;
-int mincont = 70000; // lowered for compressing table
+int mincont = 80000; // lowered for compressing table
 
 vector<string> labels = {"A","2","3","4","5","6","7","8","9","10","J","Q","K"}; // all the card values
 // going to try a template of only 13 cards with the template only the corner of the card 
@@ -139,7 +139,7 @@ int main(int argc, char** argv)
     else
     {
     	string inputfile = argv[1];
-    	tablecolor = imread(inputfile, IMREAD_COLOR); // table file for testing using upright images of cards
+    	tablecolor = imread(inputfile, IMREAD_COLOR); // for overlay at end 
     	table = imread(inputfile, IMREAD_GRAYSCALE);
     	printf("using input file %s\n",inputfile.c_str());
     }
@@ -175,9 +175,10 @@ int main(int argc, char** argv)
     Canny(blurtable, cannyedge, lowthresh, lowthresh*ratioval, kernel_size);
     
     // added visual
+    /*
     imshow("canny edge",cannyedge);
     waitKey(0);
-    
+    */
 
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
     // testing for contour area to get min and max contour if messing with new images 
@@ -194,9 +195,9 @@ int main(int argc, char** argv)
     {
         double area = contourArea(contours[i]);
 
-        // for compression
-        int minscaled = mincont * scalefactor;
-        int maxscaled = maxcont * scalefactor;
+        // for compression and mult twice for squared size
+        int minscaled = mincont * scalefactor * scalefactor;
+        int maxscaled = maxcont * scalefactor * scalefactor;
         
         // for testing contour size kept
         printf("min contour kept %i, max kept %i\n", minscaled, maxscaled);
@@ -207,12 +208,12 @@ int main(int argc, char** argv)
     }
 
     // added visual
-    
+    /*
     contourdisp=tablecolor.clone();
     drawContours(contourdisp, cardcontours, -1, Scalar(0,255,0), 1);
     imshow("Contours of cards", contourdisp);
     waitKey(0);
-    
+    */
 
 
     // get contours to 4 corner points 
@@ -221,9 +222,6 @@ int main(int argc, char** argv)
         double perimeter = arcLength(cardcontours[j], true); // finding the arclength of the contours that are closed
         vector<Point> corners;
         approxPolyDP(cardcontours[j], corners, 0.02 *perimeter, true); // 0.2 working at full resolution
-        
-        // to find if i need to change the 0.02 
-        printf("contour %zu: perimeter=%.1f, corners found=%zu\n", j, perimeter, corners.size());
 
         if(corners.size() != 4) continue;
 
@@ -253,7 +251,7 @@ int main(int argc, char** argv)
         // perspective transform to straighten cards out for reading
         vector<Point2f> srcpts = cornerorder(cardcorners[i]);
         // added visual
-        
+        /*
         for (int i = 0; i < numcards; i++) {
             vector<Point2f> srcpts = cornerorder(cardcorners[i]);
             circle(cornerdisp, srcpts[0], 6, Scalar(0,0,255), -1);   // TL = red
@@ -269,7 +267,7 @@ int main(int argc, char** argv)
                 srcpts[2].x, srcpts[2].y,
                 srcpts[3].x, srcpts[3].y
             );
-        
+        */
         vector<Point2f> dstpts = { Point2f(0,0), Point2f(200,0), Point2f(0,300), Point2f(200,300) };
 
         Mat M = getPerspectiveTransform(srcpts,dstpts); // finding difference from the cards points to a perfect upgright image
@@ -279,17 +277,18 @@ int main(int argc, char** argv)
 
         cardsisolated.push_back(warped);
     }
-    
+    // added visual for card corners
+    /*
     imshow("Corner order check", cornerdisp);
     waitKey(0);
 
-    // added visual
+    
     
     for (int i = 0; i < numcards; i++) {
         imshow("Isolated card " + to_string(i), cardsisolated[i]);
     }
     waitKey(0);
-    
+    */
 
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
@@ -303,11 +302,12 @@ int main(int argc, char** argv)
     }
 
     // added visual
+    /*
     for (size_t i = 0; i < TLofcards.size(); i++) {
         imshow("Corner crop " + to_string(i), TLofcards[i]);
     }
     waitKey(0);
-    
+    */
     clock_gettime(CLOCK_MONOTONIC, &contourend);
     clock_gettime(CLOCK_MONOTONIC, &matchstart);
 
@@ -371,9 +371,6 @@ int main(int argc, char** argv)
     check table15 for 4 card speed 
     
     */ 
-
-
-
     closelog();
     waitKey(0);
     return 0;
