@@ -320,7 +320,7 @@ int main(int argc, char** argv)
 
     // timing math and syslog
     double dt = (end.tv_sec - start.tv_sec)*1000.0 + (end.tv_nsec - start.tv_nsec)/1e6;
-    syslog(LOG_INFO, "frame process time %.3f ms", dt);
+    syslog(LOG_INFO, "frame process time %.3f ms, WCET FPS %.3f", dt, (1000/dt));
     double dtinit = (initend.tv_sec - initstart.tv_sec)*1000.0 + (initend.tv_nsec - initstart.tv_nsec)/1e6;
     syslog(LOG_INFO, "Template loading time %.3f ms", dtinit);
     double dtload = (loadend.tv_sec - loadstart.tv_sec)*1000.0 + (loadend.tv_nsec - loadstart.tv_nsec)/1e6;
