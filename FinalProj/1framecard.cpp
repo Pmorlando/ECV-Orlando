@@ -9,8 +9,7 @@
 #include <syslog.h>
 #include <string>
 #include <omp.h>
-#include <algorithm>
-
+#include <algorithm> // for the max element
 
 using namespace cv;
 using namespace std;
@@ -41,7 +40,6 @@ struct Matchresult {
 };
 
 
-// need to adjust matchcard for OpenMP
 // putting thresh in main to not redo it a bunch
 Matchresult matchcard(Mat cornerbinary, const Cardtemp& cards)
 {
@@ -64,7 +62,6 @@ Matchresult matchcard(Mat cornerbinary, const Cardtemp& cards)
 }
 
 // better loading for all templates in the struct with the value and label 
-
 vector<Cardtemp> loadtemp(vector<string> labels) 
 {
     vector<Cardtemp> out;
@@ -119,8 +116,6 @@ vector<Point2f> cornerorder(vector<Point>& pts)
     return ordered; //return the ordered list
 }
 
-
-
 int main(int argc, char** argv)
 {
     // syslog for timing check to get initial wcet
@@ -147,8 +142,6 @@ int main(int argc, char** argv)
     // adding in all templates for later testing
     vector<Cardtemp> cardtemplates = loadtemp(labels);
     
- 
-
     if(table.empty())
     {
         printf("error loading test table image");
@@ -159,54 +152,43 @@ int main(int argc, char** argv)
     vector<vector<Point>> cardcontours;
     vector<vector<Point>> cardcorners;
     vector<Vec4i> hierarchy;
-    
+    // for later visual
+    //cornerdisp=tablecolor.clone();
+
     // adding timing for frame manipulation
     clock_gettime(CLOCK_MONOTONIC, &contourstart);
-    
     setNumThreads(6);
-    // for later visual
-    cornerdisp=tablecolor.clone();
-
-    //compress table for card finding
+    //compress table for contour, blur then canny
     resize(table, tablesmall, Size(), scalefactor, scalefactor, INTER_AREA);
-
-    // blur table and canny edge detect to find the cards
     blur(tablesmall, blurtable, Size(3,3)); // changed to table small for compression
     Canny(blurtable, cannyedge, lowthresh, lowthresh*ratioval, kernel_size);
-    
     // added visual
     /*
     imshow("canny edge",cannyedge);
     waitKey(0);
     */
-
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
     // testing for contour area to get min and max contour if messing with new images 
-    
+    /*
     for(size_t i = 0; i < contours.size();i++)
     {
         double area = contourArea(contours[i]);
         printf("contour %zu area is %f\n",i, area); // issue with printing i so need zu
         
     }
-    
+    */
     // contour filter to keep only contours about the size of the cards 
     for(size_t i = 0; i < contours.size();i++)
     {
         double area = contourArea(contours[i]);
-
         // for compression and mult twice for squared size
         int minscaled = mincont * scalefactor * scalefactor;
         int maxscaled = maxcont * scalefactor * scalefactor;
-        
         // for testing contour size kept
         printf("min contour kept %i, max kept %i\n", minscaled, maxscaled);
-        
         if(area < minscaled || area > maxscaled) continue; // skip contours outside the size
-
         cardcontours.push_back(contours[i]); // make new list of the cards contours only
     }
-
     // added visual
     /*
     contourdisp=tablecolor.clone();
@@ -214,8 +196,6 @@ int main(int argc, char** argv)
     imshow("Contours of cards", contourdisp);
     waitKey(0);
     */
-
-
     // get contours to 4 corner points 
     for(size_t j = 0; j < cardcontours.size();j++)
     {
@@ -231,26 +211,19 @@ int main(int argc, char** argv)
             i.x = static_cast<int>(i.x/scalefactor);
             i.y = static_cast<int>(i.y/scalefactor);
         }
-
         cardcorners.push_back(corners); // list of card 4 corners 
         // printf("card corners %zu\n", cardcorners.size());
-        
     }
 
-    
-
     int numcards = cardcorners.size();
-
     // order the corner points by top l top r bottom l bottom r
-
     vector<Mat> cardsisolated;
     vector<Mat> TLofcards;
-  
     for(int i = 0; i < numcards;i++)
     {
         // perspective transform to straighten cards out for reading
         vector<Point2f> srcpts = cornerorder(cardcorners[i]);
-        // added visual
+        // added visual for the corner points of the cards
         /*
         for (int i = 0; i < numcards; i++) {
             vector<Point2f> srcpts = cornerorder(cardcorners[i]);
@@ -259,8 +232,6 @@ int main(int argc, char** argv)
             circle(cornerdisp, srcpts[2], 6, Scalar(255,0,0), -1);   // BL = blue
             circle(cornerdisp, srcpts[3], 6, Scalar(0,255,255), -1); // BR = yellow
         }
-        
-
         printf(" top left (%f, %f) top right (%f, %f) bottom left (%f, %f) bottom right (%f, %f)\n",
                 srcpts[0].x, srcpts[0].y,
                 srcpts[1].x, srcpts[1].y,
@@ -281,15 +252,11 @@ int main(int argc, char** argv)
     /*
     imshow("Corner order check", cornerdisp);
     waitKey(0);
-
-    
-    
     for (int i = 0; i < numcards; i++) {
         imshow("Isolated card " + to_string(i), cardsisolated[i]);
     }
     waitKey(0);
     */
-
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
         Rect cornercard(0, 0, cardsisolated[i].cols * .26, cardsisolated[i].rows * .32); // test and adjust if getting errors
@@ -301,7 +268,7 @@ int main(int argc, char** argv)
         TLofcards.push_back(binarycorner);
     }
 
-    // added visual
+    // added visual of the cards corners
     /*
     for (size_t i = 0; i < TLofcards.size(); i++) {
         imshow("Corner crop " + to_string(i), TLofcards[i]);
@@ -311,10 +278,8 @@ int main(int argc, char** argv)
     clock_gettime(CLOCK_MONOTONIC, &contourend);
     clock_gettime(CLOCK_MONOTONIC, &matchstart);
 
-
     // new matching with parallel
     int totalloops = 13 * numcards;
-
     vector<Matchresult> unsortresult(totalloops);
     setNumThreads(1); 
 
@@ -326,7 +291,6 @@ int main(int argc, char** argv)
 
         unsortresult[loop] = matchcard(TLofcards[cardloop], cardtemplates[temploop]);
     }
-
     vector<Matchresult> foundcards(numcards);
     for(int eachcard = 0; eachcard < numcards;eachcard++)
     {
@@ -341,30 +305,23 @@ int main(int argc, char** argv)
         if(bestguess.maxval < cardthresh) bestguess.value = "Value not found";
         foundcards[eachcard] = bestguess;
     }
-
     // draw the cards outline and value
     for(int i = 0; i <numcards; i++)
     {
         rectangle(tablecolor, cardcorners[i][0], cardcorners[i][3], Scalar(0,255,0), 2); // draw rectangle around the cards
         putText(tablecolor, foundcards[i].value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // draw which value
     }
-
-
-
-
     clock_gettime(CLOCK_MONOTONIC, &matchend);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
+    // timing math and syslog
     double dt = (end.tv_sec - start.tv_sec)*1000.0 + (end.tv_nsec - start.tv_nsec)/1e6;
     syslog(LOG_INFO, "frame process time %.3f ms", dt);
-    
     double dtcontour = (contourend.tv_sec - contourstart.tv_sec)*1000.0 + (contourend.tv_nsec - contourstart.tv_nsec)/1e6;
     syslog(LOG_INFO, "contour process time %.3f ms", dtcontour);
-    
     double dtmatch = (matchend.tv_sec - matchstart.tv_sec)*1000.0 + (matchend.tv_nsec - matchstart.tv_nsec)/1e6;
     syslog(LOG_INFO, "match process time %.3f ms", dtmatch);
     
-
     imshow("Blackjack table with found cards", tablecolor);
 
     /*
