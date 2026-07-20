@@ -1,5 +1,5 @@
 // written by by Phil Orlando for the Final Project
-//compiled with g++ -O0 -g -I/usr/local/include/opencv4 1framecard.cpp -o 1framecard -L/usr/local/lib `pkg-config --libs opencv4`
+//compiled with g++ -O0 -g -fopenmp -I/usr/local/include/opencv4 1framecard.cpp -o 1framecard -L/usr/local/lib `pkg-config --libs opencv4`
 
 
 #include <opencv2/opencv.hpp>
@@ -8,6 +8,8 @@
 #include <iostream>
 #include <syslog.h>
 #include <string>
+#include <omp.h>
+#include <algorithm>
 
 
 using namespace cv;
@@ -39,46 +41,27 @@ struct Matchresult {
 };
 
 
-Matchresult Matchcard(Mat cardcorner, vector<Cardtemp>& cards)
+// need to adjust matchcard for OpenMP
+// putting thresh in main to not redo it a bunch
+Matchresult matchcard(Mat cornerbinary, const Cardtemp& cards)
 {
-    Mat binarycorner;
-    threshold(cardcorner, binarycorner, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
-    
-    
-    Matchresult bestcard; // using struct to store the multiple values for each card i want
-    bestcard.maxval = 0;
-    bestcard.value = "";
-    
-    for(auto& i : cards)
+    vector<double> scores;
+    for(auto& samp : cards.imgs)
     {
-    	for(auto& samp : i.imgs)
-    	{
-    	    Mat result;
-    	    matchTemplate(binarycorner, samp, result, TM_CCOEFF_NORMED);
-    	    
-    	    
-    	    double maxval;
-    	    Point maxloc;
-    	    minMaxLoc(result, NULL, &maxval, NULL, &maxloc);
-    	    
-    	    if(maxval > bestcard.maxval)
-    	    {
-    	    	bestcard.maxval = maxval; // set new highest value 
-    	    	bestcard.value = i.value; // the label is now which had the highest correlation
-    	    	bestcard.maxloc = maxloc;
-    	    }
-    	}
-    
+        //same matching idea as before and removed location
+        Mat result;
+        matchTemplate(cornerbinary, samp, result, TM_CCOEFF_NORMED);
 
+        double maxval;
+        minMaxLoc(result, NULL, &maxval, NULL, NULL);
+        scores.push_back(maxval);
     }
-    if(bestcard.maxval < cardthresh)
-    {
-    	printf("card recognized is below threshold\n");
-    	bestcard.value = ""; // set the stored card value to nothing 
-    }
-    return bestcard; 
+
+    Matchresult bestcard;
+    bestcard.value = cards.value;
+    bestcard.maxval = max_element(scores.begin(), scores.end());
+    return bestcard;
 }
-
 
 // better loading for all templates in the struct with the value and label 
 
@@ -180,6 +163,7 @@ int main(int argc, char** argv)
     // adding timing for frame manipulation
     clock_gettime(CLOCK_MONOTONIC, &contourstart);
     
+    setNumThreads(6);
     // for later visual
     cornerdisp=tablecolor.clone();
 
@@ -196,8 +180,7 @@ int main(int argc, char** argv)
     
 
     findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); //CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
-    // was finding doubles for the cards and external should fix it 
-    // testing contour area to get min and max contour if messing with new images 
+    // testing for contour area to get min and max contour if messing with new images 
     /*
     for(size_t i = 0; i < contours.size();i++)
     {
@@ -220,11 +203,12 @@ int main(int argc, char** argv)
     }
 
     // added visual
+    /*
     contourdisp=tablecolor.clone();
     drawContours(contourdisp, cardcontours, -1, Scalar(0,255,0), 1);
-    //imshow("Contours of cards", contourdisp);
-    //waitKey(0);
-
+    imshow("Contours of cards", contourdisp);
+    waitKey(0);
+    */
 
 
     // get contours to 4 corner points 
@@ -259,12 +243,10 @@ int main(int argc, char** argv)
   
     for(int i = 0; i < numcards;i++)
     {
-        // perspectiive transform to straighten cards out for reading
+        // perspective transform to straighten cards out for reading
         vector<Point2f> srcpts = cornerorder(cardcorners[i]);
-        // making sure order is right
-
         // added visual
-        
+        /*
         for (int i = 0; i < numcards; i++) {
             vector<Point2f> srcpts = cornerorder(cardcorners[i]);
             circle(cornerdisp, srcpts[0], 6, Scalar(0,0,255), -1);   // TL = red
@@ -274,7 +256,7 @@ int main(int argc, char** argv)
         }
         
 
-        /* printf(" top left (%f, %f) top right (%f, %f) bottom left (%f, %f) bottom right (%f, %f)\n",
+        printf(" top left (%f, %f) top right (%f, %f) bottom left (%f, %f) bottom right (%f, %f)\n",
                 srcpts[0].x, srcpts[0].y,
                 srcpts[1].x, srcpts[1].y,
                 srcpts[2].x, srcpts[2].y,
@@ -306,7 +288,11 @@ int main(int argc, char** argv)
     {
         Rect cornercard(0, 0, cardsisolated[i].cols * .26, cardsisolated[i].rows * .32); // test and adjust if getting errors
         Mat corner = cardsisolated[i](cornercard);
-        TLofcards.push_back(corner);
+        // added threshold here 
+        Mat binarycorner;
+        threshold(corner, binarycorner, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
+    
+        TLofcards.push_back(binarycorner);
     }
 
     /* added visual
@@ -318,29 +304,47 @@ int main(int argc, char** argv)
     clock_gettime(CLOCK_MONOTONIC, &contourend);
     clock_gettime(CLOCK_MONOTONIC, &matchstart);
 
-    // matching  
-    vector<Matchresult> foundcards;
-    for(size_t i =0; i <TLofcards.size();i++)
+
+    // new matching with parallel
+    int totalloops = 13 * numcards;
+
+    vector<Matchresult> unsortresult(totalloops);
+    setNumThreads(1); 
+
+    #pragma omp parallel for
+    for(int loop = 0; loop < totalloops;loop++)
     {
-        Matchresult thiscard = Matchcard(TLofcards[i], cardtemplates);
+        int cardloop = loop / 13;// loops through the cards in table
+        int temploop = loop % 13;// remainder so counts through the templates
 
-        printf("card value %s, correlation, %f, location (%d, %d)\n", 
-                thiscard.value.c_str(),
-                thiscard.maxval,
-                thiscard.maxloc.x, thiscard.maxloc.y
-            );
-
-        
-        if(thiscard.value == "") thiscard.value = "Value not found"; 
-
-        foundcards.push_back(thiscard);
-
-
-        rectangle(tablecolor, cardcorners[i][0], cardcorners[i][3], Scalar(0,255,0), 2); // draw rectangle around the cards
-        putText(tablecolor, thiscard.value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // draw which value
-        // +20 puts the label above the box and not over the corner
-        
+        unsortresult[loop] = matchcard(TLofcards[cardloop], cardtemplates[temploop]);
     }
+
+    vector<Matchresult> foundcards(numcards);
+    for(int eachcard = 0; eachcard < numcards;eachcard++)
+    {
+        Matchresult bestguess;
+        bestguess.maxval = 0;
+        bestguess.value = "";
+        for(int temps = 0; temps < 13; temps++)
+        {
+            Matchresult maybe = unsortresult[eachcard * 13 + temps];
+            if(maybe.maxval > bestguess.maxval) bestguess = maybe;
+        }
+        if(bestguess.maxval < cardthresh) bestguess.value = "Value not found";
+        foundcards[eachcard] = bestguess;
+    }
+
+    // draw the cards outline and value
+    for(int i = 0; i <numcards; i++)
+    {
+        rectangle(tablecolor, cardcorners[i][0], cardcorners[i][3], Scalar(0,255,0), 2); // draw rectangle around the cards
+        putText(tablecolor, foundcards[i].value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // draw which value
+    }
+
+
+
+
     clock_gettime(CLOCK_MONOTONIC, &matchend);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
@@ -357,18 +361,7 @@ int main(int argc, char** argv)
     imshow("Blackjack table with found cards", tablecolor);
 
     /*
-    to think about:
-    how to best thread the 6 cores, maybe 1 core per sample in the templates 
-    multi core the blur, canny and contouring stuff 
-    so i guess 2 sections of threading and multicore stuff, need to see size of the resized table to see how to best multi core it 
-
-    maybe put functions to the blur, canny and other stuff to keep main cleaner and easier to follow 
-    maybe 6 core where 5 get 2 cards and 1 gets 3 cards
-
     check table15 for 4 card speed 
-
-    setNumThreads(6) at begining of main, and setNumThreads(1) before matching and mutithread that 
-
     
     */ 
 
