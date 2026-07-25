@@ -16,13 +16,13 @@ using namespace std;
 
 // constants
 string tablefile = "table7.jpg";
-double scalefactor = 0.75; // testing to make sure it is still finding cards 
+double scalefactor = 1.0; // testing to make sure it is still finding cards 
 double cardthresh = 0.50; // fine tune with more testing
 int lowthresh = 150; // from testing with canny.cpp from exercise 2 90 isolated edges of cards and lost alot of the little ones
 int ratioval = 3;
 int kernel_size = 3;
-int maxcont = 60000;
-int mincont = 20000; // lowered for compressing table
+int maxcont = 110000;
+int mincont = 80000; // lowered for compressing table
 
 vector<string> labels = {"A","2","3","4","5","6","7","8","9","10","J","Q","K"}; // all the card values
 // going to try a template of only 13 cards with the template only the corner of the card 
@@ -156,7 +156,7 @@ int main(int argc, char** argv)
     vector<vector<Point>> cardcorners;
     vector<Vec4i> hierarchy;
     // for later visual
-    //cornerdisp=tablecolor.clone();
+    cornerdisp=tablecolor.clone();
 
     // adding timing for frame manipulation
     clock_gettime(CLOCK_MONOTONIC, &loadend);
@@ -194,12 +194,12 @@ int main(int argc, char** argv)
         cardcontours.push_back(contours[i]); // make new list of the cards contours only
     }
     // added visual
-    /*
+    
     contourdisp=tablecolor.clone();
     drawContours(contourdisp, cardcontours, -1, Scalar(0,255,0), 1);
     imshow("Contours of cards", contourdisp);
     waitKey(0);
-    */
+    
     // get contours to 4 corner points 
     for(size_t j = 0; j < cardcontours.size();j++)
     {
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
         // perspective transform to straighten cards out for reading
         vector<Point2f> srcpts = cornerorder(cardcorners[i]);
         // added visual for the corner points of the cards
-        /*
+        
         for (int i = 0; i < numcards; i++) {
             vector<Point2f> srcpts = cornerorder(cardcorners[i]);
             circle(cornerdisp, srcpts[0], 6, Scalar(0,0,255), -1);   // TL = red
@@ -242,7 +242,7 @@ int main(int argc, char** argv)
                 srcpts[2].x, srcpts[2].y,
                 srcpts[3].x, srcpts[3].y
             );
-        */
+        
         vector<Point2f> dstpts = { Point2f(0,0), Point2f(200,0), Point2f(0,300), Point2f(200,300) };
 
         Mat M = getPerspectiveTransform(srcpts,dstpts); // finding difference from the cards points to a perfect upgright image
@@ -253,14 +253,14 @@ int main(int argc, char** argv)
         cardsisolated.push_back(warped);
     }
     // added visual for card corners
-    /*
+    
     imshow("Corner order check", cornerdisp);
     waitKey(0);
     for (int i = 0; i < numcards; i++) {
         imshow("Isolated card " + to_string(i), cardsisolated[i]);
     }
     waitKey(0);
-    */
+    
     for(size_t i =0; i < cardsisolated.size(); i++)// isolate corner of the card to run into matching
     {
         Rect cornercard(0, 0, cardsisolated[i].cols * .26, cardsisolated[i].rows * .32); // test and adjust if getting errors
@@ -273,12 +273,12 @@ int main(int argc, char** argv)
     }
 
     // added visual of the cards corners
-    /*
+    
     for (size_t i = 0; i < TLofcards.size(); i++) {
         imshow("Corner crop " + to_string(i), TLofcards[i]);
     }
     waitKey(0);
-    */
+    
     clock_gettime(CLOCK_MONOTONIC, &contourend);
     clock_gettime(CLOCK_MONOTONIC, &matchstart);
 

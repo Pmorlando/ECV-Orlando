@@ -288,7 +288,7 @@ int main(int argc, char** argv)
     double dt = (end.tv_sec - start.tv_sec)*1000.0 + (end.tv_nsec - start.tv_nsec)/1e6;
     double avgfps = framecnt / (dt / 1000.0);
     syslog(LOG_INFO, "Total video process time %.3f ms, AVG FPS %.3f", dt, avgfps);
-    printf("Total video process time %.3f ms, AVG FPS %.3f\n", dt, avgfps)
+    printf("Total frames processed %ld, AVG FPS %.3f\n", framecnt, avgfps);
     
     closelog();
     return 0;
