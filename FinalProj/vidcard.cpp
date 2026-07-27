@@ -278,7 +278,7 @@ int main(int argc, char** argv)
         //show results
 
         imshow("Blackjack table with found cards", tablecolor);
-        waitKey(1);
+        waitKey(0);
 
     }
 
