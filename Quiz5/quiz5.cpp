@@ -24,7 +24,7 @@ resize bears640.pgm to 320x240
 
 imwrite bears320down.pgm
 */
-// add compile command
+// compiled with g++ -O0 -g -fopenmp -I/usr/local/include/opencv4 quiz5.cpp -o quiz5 -L/usr/local/lib `pkg-config --libs opencv4`
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -40,10 +40,10 @@ using namespace std;
 int main()
 {
     // 1
-    Mat orig = imread("bears.pgm");
+    Mat orig = imread("Bears.ppm");
     Mat grayorig;
     Mat bears320;
-    grayorig = cvtColor(orig, COLOR_BGR2GRAY1);
+    cvtColor(orig, grayorig, COLOR_BGR2GRAY);
     resize(grayorig, bears320, Size(320,240), 0, 0, INTER_LINEAR);
 
     imwrite("bears320.pgm", bears320);
@@ -51,7 +51,7 @@ int main()
     // 2 
     Mat bigbears;
 
-    resize(bears320,bigbears,Size(640,240), 0, 0, INTER_LINEAR);
+    resize(bears320,bigbears,Size(640,480), 0, 0, INTER_LINEAR);
 
     imwrite("bears640.pgm", bigbears);
     imshow("Upscale bears", bigbears);
@@ -70,9 +70,9 @@ int main()
     Mat bearsdiff;
     absdiff(bears320,bears320down, bearsdiff);
 
-    double diffsum = (unsigned int)csum(bearsdiff)[0]; // single channel sum
+    double diffsum = (unsigned int)sum(bearsdiff)[0]; // single channel sum
 
-    double percent_diff = ((double)diffsum / (double)bearsdiff)*100.0;
+    double percent_diff = ((double)diffsum / (double)maxdiff)*100.0;
 
     printf("percent diff=%lf\n", percent_diff);
 
