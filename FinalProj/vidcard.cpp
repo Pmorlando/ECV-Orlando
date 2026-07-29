@@ -104,6 +104,67 @@ vector<Point2f> cornerorder(vector<Point>& pts)
     return ordered; //return the ordered list
 }
 
+//dealer card get 
+string dealercard(string value)
+{
+    if(value == "J" || value == "Q" || value == "K") return "10";
+    return value;
+}
+ // only handling hard totals so A is 11
+string playerhand(string value1, string value2)
+{
+    int val1, val2;
+    if(value1 == "A") val1 = 11;
+    if(value2 == "A") val2 = 11;
+    if(value1 == "J" || value1 == "Q" || value1 == "K") val1 = 10;
+    else val1 = stoi(value1);
+
+    if(value1 == "A") val1 = 11;
+    if(value2 == "A") val2 = 11;
+    if(value1 == "J" || value1 == "Q" || value1 == "K") val1 = 10;
+    else val2 = stoi(value2);
+
+    int sum = sum(val1, val2);
+
+    return to_string(sum);    
+}
+
+// lookup table for the blackjack table player card for row dealer columns 2-10 , A
+const char* const lookuptable[8][10] = {
+    {"Hit","Double down","Double down","Double down","Double down","Hit","Hit","Hit","Hit","Hit"}, //9
+    {"Double down","Double down","Double down","Double down","Double down","Double down","Double down","Double down","Hit","Hit"}, //10
+    {"Double down","Double down","Double down","Double down","Double down","Double down","Double down","Double down","Double down","Double down"}, //11
+    {"Hit","Hit","Stand","Stand","Stand","Hit","Hit","Hit","Hit","Hit"}, //12
+    {"Stand","Stand","Stand","Stand","Stand","Hit","Hit","Hit","Hit","Hit"}, //13
+    {"Stand","Stand","Stand","Stand","Stand","Hit","Hit","Hit","Hit","Hit"}, //14
+    {"Stand","Stand","Stand","Stand","Stand","Hit","Hit","Hit","Hit","Hit"}, //15
+    {"Stand","Stand","Stand","Stand","Stand","Hit","Hit","Hit","Hit","Hit"}, //16
+};
+
+
+
+// using table from this source https://www.researchgate.net/publication/366868685_Implementing_Playing_Cards_BlackJack_Game_using_OpenCV
+string blackjackrec(string player, string dealer)
+{
+    //less than 9 hit
+    int deal; 
+    int play = stoi(player);
+    if(play < 9) return "hit"; 
+    // greater than 16 stand
+    if(play > 16) return "stand";
+    
+    if(dealer == "A") 
+    {
+        deal = 9;
+    }
+    else 
+    {
+        deal = stoi(dealer)-2;
+    }
+    return lookuptable[play-9][deal];
+}
+// blackjack recomendation function using only hard totals 
+
 int main(int argc, char** argv)
 {
     setNumThreads(6);
@@ -260,12 +321,68 @@ int main(int argc, char** argv)
             foundcards[eachcard] = bestguess;
         }
 
+        string recc = "";
+        if(numcards == 3)
+        {
+            // find center
+            vector<Point2f> centroid(numcards);
+            for(int i =0;i < numcards; i++)
+            {
+                centroid[i] = (Point2f(cardcorners[i][0]) + Point2f(cardcorners[i][3])* 0.5f);
+            }
+
+            dealercardidx = 0; //lower y value is higher in the image 
+            for(int i = 1; i< numcards; i++)
+            {
+                if(centroid[i].y < centroid[dealercardidx].y)
+                dealercardidx = i;
+            }
+            int Pcard1;
+            int Pcard2;
+
+            if(dealercardidx == 0)
+            {
+                Pcard1 = 1;
+                Pcard2 = 2;
+            }
+            else if(dealercardidx == 1)
+            {
+                Pcard1 = 0;
+                Pcard2 = 2;
+            }
+            else
+            {
+                Pcard1 = 0;
+                Pcard2 = 1;
+            }
+
+            string dealertot = dealercard(foundcards[dealercardidx].value);
+
+            string playertot = playerhand(foundcards[Pcard1].value,foundcards[Pcard2].value);
+
+
+            recc = blackjackrec(playertot, dealertot);
+
+            // function for foundcards[i].value to be used for black jack value
+
+        }
+        else
+        {
+            //write waiting for full deal
+            recc = "waiting for more cards to be dealt";
+        }
+
         // draw the cards outline and value
         for (int i = 0; i < numcards; i++)
         {
+            string disprecc = "Recommend " + recc;
             rectangle(tablecolor, cardcorners[i][0], cardcorners[i][3], Scalar(0, 255, 0), 2);                                                               // draw rectangle around the cards
             putText(tablecolor, foundcards[i].value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // draw which value
+            putText(tablecolor, disp, Point(tablecolor.cols -5,tablecolor.rows - 40), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // write reccomendation for player
+            // puttext for recc
         }
+        putText(tablecolor, disp, Point(tablecolor.cols -5,tablecolor.rows - 40), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // write reccomendation for player
+        
         clock_gettime(CLOCK_MONOTONIC, &matchend);
         double dtmatch = (matchend.tv_sec - matchstart.tv_sec)*1000.0 + (matchend.tv_nsec - matchstart.tv_nsec)/1e6;
         syslog(LOG_INFO, "match process time %.3f ms", dtmatch);
