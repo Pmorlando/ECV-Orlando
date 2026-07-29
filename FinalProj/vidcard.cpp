@@ -75,7 +75,7 @@ vector<Cardtemp> loadtemp(vector<string> labels)
                 continue;             
             }
             Mat binarytemp;
-            threshold(img, binarytemp, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
+            threshold(img, binarytemp, 0, 255, THRESH_BINARY_INV | THRESH_OTSU); // thresh the templates on loading
             templates.imgs.push_back(binarytemp);
         }
         out.push_back(templates);
@@ -107,6 +107,7 @@ vector<Point2f> cornerorder(vector<Point>& pts)
 //dealer card get 
 string dealercard(string value)
 {
+    if(value == "Value not found") return "Dealer card not found";
     if(value == "J" || value == "Q" || value == "K") return "10";
     return value;
 }
@@ -114,19 +115,19 @@ string dealercard(string value)
 string playerhand(string value1, string value2)
 {
     int val1, val2;
-    if(value1 == "A") val1 = 11;
-    if(value2 == "A") val2 = 11;
-    if(value1 == "J" || value1 == "Q" || value1 == "K") val1 = 10;
-    else val1 = stoi(value1);
+    if(value1 == "Value not found") return "One player card not found";
+    if(value2 == "Value not found") return "One player card not found";
+    if(value1 == "A") val1 = 11; // hard A value of 11
+    if(value1 == "J" || value1 == "Q" || value1 == "K") val1 = 10; // face cards are 10
+    else val1 = stoi(value1);// direct convert from the string to int value 
 
-    if(value1 == "A") val1 = 11;
     if(value2 == "A") val2 = 11;
-    if(value1 == "J" || value1 == "Q" || value1 == "K") val1 = 10;
+    if(value2 == "J" || value2 == "Q" || value2 == "K") val2 = 10;
     else val2 = stoi(value2);
 
     int sum = sum(val1, val2);
 
-    return to_string(sum);    
+    return to_string(sum); // returns back player card sum as string 
 }
 
 // lookup table for the blackjack table player card for row dealer columns 2-10 , A
@@ -141,12 +142,11 @@ const char* const lookuptable[8][10] = {
     {"Stand","Stand","Stand","Stand","Stand","Hit","Hit","Hit","Hit","Hit"}, //16
 };
 
-
-
 // using table from this source https://www.researchgate.net/publication/366868685_Implementing_Playing_Cards_BlackJack_Game_using_OpenCV
 string blackjackrec(string player, string dealer)
 {
     //less than 9 hit
+    if(player == "One player card not found" || dealer == "Dealer card not found") return "No recommendation due to card values not being found. Please wait";
     int deal; 
     int play = stoi(player);
     if(play < 9) return "hit"; 
@@ -230,7 +230,8 @@ int main(int argc, char** argv)
         Canny(blurtable, cannyedge, lowthresh, lowthresh * ratioval, kernel_size);
         findContours(cannyedge, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); // CHAIN_APPROX_SIMPLE keeps only end points of contourstraight lines so faster
 
-        for (size_t i = 0; i < contours.size(); i++)
+        // filtering contours by size and keeping card sized contours 
+        for (size_t i = 0; i < contours.size(); i++) 
         {
             double area = contourArea(contours[i]);
             // for compression and mult twice for squared size
@@ -242,7 +243,7 @@ int main(int argc, char** argv)
                 continue;                        // skip contours outside the size
             cardcontours.push_back(contours[i]); // make new list of the cards contours only
         }
-        // contour filter to keep only contours about the size of the cards
+        // contours card sized are taken to have 4 corner points 
         for (size_t j = 0; j < cardcontours.size(); j++)
         {
             double perimeter = arcLength(cardcontours[j], true); // finding the arclength of the contours that are closed
@@ -265,7 +266,7 @@ int main(int argc, char** argv)
         vector<Mat> cardsisolated;
         vector<Mat> TLofcards;
 
-        // order the corner points by top l top r bottom l bottom r
+        // order the corner points of cards by top l top r bottom l bottom r
         for (int i = 0; i < numcards; i++)
         {
             // perspective transform to straighten cards out for reading
@@ -291,7 +292,7 @@ int main(int argc, char** argv)
         syslog(LOG_INFO, "contour process time %.3f ms", dtcontour);
         clock_gettime(CLOCK_MONOTONIC, &matchstart);
 
-        // new matching with parallel
+        // new matching with parallel OpenMP
         int totalloops = 13 * numcards;
         vector<Matchresult> unsortresult(totalloops);
         setNumThreads(1);
@@ -304,6 +305,7 @@ int main(int argc, char** argv)
 
             unsortresult[loop] = matchcard(TLofcards[cardloop], cardtemplates[temploop]);
         }
+        // need to used highest correlation but have all values
         vector<Matchresult> foundcards(numcards);
         for (int eachcard = 0; eachcard < numcards; eachcard++)
         {
@@ -312,7 +314,7 @@ int main(int argc, char** argv)
             bestguess.value = "";
             for (int temps = 0; temps < 13; temps++)
             {
-                Matchresult maybe = unsortresult[eachcard * 13 + temps];
+                Matchresult maybe = unsortresult[eachcard * 13 + temps]; //stored in long vector where each 13 values are the card values
                 if (maybe.maxval > bestguess.maxval)
                     bestguess = maybe;
             }
@@ -320,8 +322,8 @@ int main(int argc, char** argv)
                 bestguess.value = "Value not found";
             foundcards[eachcard] = bestguess;
         }
-
-        string recc = "";
+        // getting recommendation for the player 
+        string rec = "";
         if(numcards == 3)
         {
             // find center
@@ -332,6 +334,7 @@ int main(int argc, char** argv)
             }
 
             dealercardidx = 0; //lower y value is higher in the image 
+            // dealer card will be the highest 
             for(int i = 1; i< numcards; i++)
             {
                 if(centroid[i].y < centroid[dealercardidx].y)
@@ -361,25 +364,22 @@ int main(int argc, char** argv)
             string playertot = playerhand(foundcards[Pcard1].value,foundcards[Pcard2].value);
 
 
-            recc = blackjackrec(playertot, dealertot);
-
-            // function for foundcards[i].value to be used for black jack value
+            rec = blackjackrec(playertot, dealertot);
 
         }
         else
         {
             //write waiting for full deal
-            recc = "waiting for more cards to be dealt";
+            rec = "waiting for more cards to be dealt";
         }
 
         // draw the cards outline and value
         for (int i = 0; i < numcards; i++)
         {
-            string disprecc = "Recommend " + recc;
+            string disprec = "Recommend " + rec;
             rectangle(tablecolor, cardcorners[i][0], cardcorners[i][3], Scalar(0, 255, 0), 2);                                                               // draw rectangle around the cards
             putText(tablecolor, foundcards[i].value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // draw which value
-            putText(tablecolor, disp, Point(tablecolor.cols -5,tablecolor.rows - 40), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // write reccomendation for player
-            // puttext for recc
+            putText(tablecolor, disprec, Point(tablecolor.cols -5,tablecolor.rows - 40), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // write reccomendation for player
         }
         putText(tablecolor, disp, Point(tablecolor.cols -5,tablecolor.rows - 40), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // write reccomendation for player
         
