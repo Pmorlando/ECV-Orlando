@@ -174,7 +174,7 @@ int main(int argc, char** argv)
     
     clock_gettime(CLOCK_MONOTONIC, &initstart);
     
-    // adding in all templates
+    // adding in all templates as binary thresholds
     vector<Cardtemp> cardtemplates = loadtemp(labels);
     
     Mat tablecolor;
@@ -197,6 +197,12 @@ int main(int argc, char** argv)
         printf("error loading test table video");
         return -1;
     }
+
+    // for recording the output as a video, comment out for speed test
+
+    fourcc = VideoWriter_fourcc(*'MP4V')
+    VideoWriter out("blackjackrecord.mp4", fourcc, 20.0, Size(1280, 720));
+
 
     long framecnt = 0;
     // make for loop with the read, gray then go into each frame stuff
@@ -380,6 +386,8 @@ int main(int argc, char** argv)
             rectangle(tablecolor, cardcorners[i][0], cardcorners[i][3], Scalar(0, 255, 0), 2);                                                               // draw rectangle around the cards
             putText(tablecolor, foundcards[i].value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // draw which value
             putText(tablecolor, disprec, Point(tablecolor.cols -5,tablecolor.rows - 40), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // write reccomendation for player
+
+            
         }
         putText(tablecolor, disp, Point(tablecolor.cols -5,tablecolor.rows - 40), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // write reccomendation for player
         
@@ -392,6 +400,7 @@ int main(int argc, char** argv)
         syslog(LOG_INFO, "frame process time %.3f ms, FPS %.3f", dtframe, (1000/dtframe));
 
         framecnt++;
+        out.write(tablecolor)
         //show results
 
         imshow("Blackjack table with found cards", tablecolor);
@@ -408,6 +417,8 @@ int main(int argc, char** argv)
     printf("Total frames processed %ld, AVG FPS %.3f\n", framecnt, avgfps);
     
     closelog();
+    cap.release();
+    out.release();
     return 0;
     
 }
