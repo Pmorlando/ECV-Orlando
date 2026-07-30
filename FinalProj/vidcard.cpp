@@ -200,7 +200,7 @@ int main(int argc, char** argv)
 
     // for recording the output as a video, comment out for speed test
 
-    fourcc = VideoWriter_fourcc(*'MP4V')
+    int fourcc = VideoWriter::fourcc('M', 'P', '4', 'V');
     VideoWriter out("blackjackrecord.mp4", fourcc, 20.0, Size(1280, 720));
 
 
@@ -418,6 +418,7 @@ int main(int argc, char** argv)
     
     closelog();
     cap.release();
+    // for recording comment out for speed test
     out.release();
     return 0;
     
