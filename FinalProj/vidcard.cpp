@@ -395,6 +395,8 @@ int main(int argc, char** argv)
         }
         putText(tablecolor, disprec, Point(tablecolor.cols -1100 ,tablecolor.rows - 30), FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 255, 0), 2); // write reccomendation for player
         // adjusted location to start on bottom left 
+        // put frame number for reliability testing
+        putText(tablecolor, to_string(framecnt+1), Point(tablecolor.cols -1100 ,tablecolor.rows - 700), FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 255, 0), 2);
         
         clock_gettime(CLOCK_MONOTONIC, &matchend);
         double dtmatch = (matchend.tv_sec - matchstart.tv_sec)*1000.0 + (matchend.tv_nsec - matchstart.tv_nsec)/1e6;
@@ -410,7 +412,7 @@ int main(int argc, char** argv)
         //show results
 
         imshow("Blackjack table with found cards", tablecolor);
-        waitKey(1); // change to 0 for single frame checks
+        waitKey(0); // change to 0 for single frame checks
 
     }
 
