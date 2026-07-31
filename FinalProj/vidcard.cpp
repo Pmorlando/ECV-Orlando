@@ -125,9 +125,9 @@ string playerhand(string value1, string value2)
     if(value2 == "J" || value2 == "Q" || value2 == "K") val2 = 10;
     else val2 = stoi(value2);
 
-    int sum = sum(val1, val2);
+    int playersum = val1+ val2;
 
-    return to_string(sum); // returns back player card sum as string 
+    return to_string(playersum); // returns back player card sum as string 
 }
 
 // lookup table for the blackjack table player card for row dealer columns 2-10 , A
@@ -199,10 +199,10 @@ int main(int argc, char** argv)
     }
 
     // for recording the output as a video, comment out for speed test
-
-    int fourcc = VideoWriter::fourcc('M', 'P', '4', 'V');
+    /*
+    int fourcc = VideoWriter::fourcc('m', 'p', '4', 'v');
     VideoWriter out("blackjackrecord.mp4", fourcc, 20.0, Size(1280, 720));
-
+    */
 
     long framecnt = 0;
     // make for loop with the read, gray then go into each frame stuff
@@ -330,6 +330,8 @@ int main(int argc, char** argv)
         }
         // getting recommendation for the player 
         string rec = "";
+        string disprec = "";
+        
         if(numcards == 3)
         {
             // find center
@@ -339,7 +341,7 @@ int main(int argc, char** argv)
                 centroid[i] = (Point2f(cardcorners[i][0]) + Point2f(cardcorners[i][3])* 0.5f);
             }
 
-            dealercardidx = 0; //lower y value is higher in the image 
+            int dealercardidx = 0; //lower y value is higher in the image 
             // dealer card will be the highest 
             for(int i = 1; i< numcards; i++)
             {
@@ -369,27 +371,29 @@ int main(int argc, char** argv)
 
             string playertot = playerhand(foundcards[Pcard1].value,foundcards[Pcard2].value);
 
-
+	    
             rec = blackjackrec(playertot, dealertot);
-
+            disprec = "Recommend " + rec;
+            
         }
-        else
+        else if(numcards < 3)
         {
             //write waiting for full deal
-            rec = "waiting for more cards to be dealt";
+            disprec = "Waiting for more cards to be dealt";
         }
-
+        else disprec = "Too many cards on table";
+        
+        
         // draw the cards outline and value
         for (int i = 0; i < numcards; i++)
         {
-            string disprec = "Recommend " + rec;
+            
             rectangle(tablecolor, cardcorners[i][0], cardcorners[i][3], Scalar(0, 255, 0), 2);                                                               // draw rectangle around the cards
             putText(tablecolor, foundcards[i].value, Point(cardcorners[i][0].x + 20, cardcorners[i][0].y), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // draw which value
-            putText(tablecolor, disprec, Point(tablecolor.cols -5,tablecolor.rows - 40), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // write reccomendation for player
-
-            
+                        
         }
-        putText(tablecolor, disp, Point(tablecolor.cols -5,tablecolor.rows - 40), FONT_HERSHEY_SIMPLEX, 1.5, Scalar(0, 255, 0), 2); // write reccomendation for player
+        putText(tablecolor, disprec, Point(tablecolor.cols -1100 ,tablecolor.rows - 30), FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 255, 0), 2); // write reccomendation for player
+        // adjusted location to start on bottom left 
         
         clock_gettime(CLOCK_MONOTONIC, &matchend);
         double dtmatch = (matchend.tv_sec - matchstart.tv_sec)*1000.0 + (matchend.tv_nsec - matchstart.tv_nsec)/1e6;
@@ -400,11 +404,12 @@ int main(int argc, char** argv)
         syslog(LOG_INFO, "frame process time %.3f ms, FPS %.3f", dtframe, (1000/dtframe));
 
         framecnt++;
-        out.write(tablecolor)
+        // for making video comment out for speed test 
+        //out.write(tablecolor);
         //show results
 
         imshow("Blackjack table with found cards", tablecolor);
-        waitKey(0);
+        waitKey(1); // change to 0 for single frame checks
 
     }
 
@@ -419,7 +424,7 @@ int main(int argc, char** argv)
     closelog();
     cap.release();
     // for recording comment out for speed test
-    out.release();
+    //out.release();
     return 0;
     
 }
