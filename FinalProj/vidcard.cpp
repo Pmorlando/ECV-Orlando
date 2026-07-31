@@ -200,10 +200,10 @@ int main(int argc, char** argv)
     }
 
     // for recording the output as a video, comment out for speed test
-    /*
+    
     int fourcc = VideoWriter::fourcc('m', 'p', '4', 'v');
     VideoWriter out("blackjackrecord.mp4", fourcc, 20.0, Size(1280, 720));
-    */
+    
 
     long framecnt = 0;
     // make for loop with the read, gray then go into each frame stuff
@@ -408,11 +408,11 @@ int main(int argc, char** argv)
 
         framecnt++;
         // for making video comment out for speed test 
-        //out.write(tablecolor);
+        out.write(tablecolor);
+        
         //show results
-
         imshow("Blackjack table with found cards", tablecolor);
-        waitKey(0); // change to 0 for single frame checks
+        waitKey(1); // change to 0 for single frame checks
 
     }
 
@@ -427,7 +427,7 @@ int main(int argc, char** argv)
     closelog();
     cap.release();
     // for recording comment out for speed test
-    //out.release();
+    out.release();
     return 0;
     
 }
