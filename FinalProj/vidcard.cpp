@@ -117,12 +117,13 @@ string playerhand(string value1, string value2)
     int val1, val2;
     if(value1 == "Value not found") return "One player card not found";
     if(value2 == "Value not found") return "One player card not found";
+    
     if(value1 == "A") val1 = 11; // hard A value of 11
-    if(value1 == "J" || value1 == "Q" || value1 == "K") val1 = 10; // face cards are 10
+    else if(value1 == "J" || value1 == "Q" || value1 == "K") val1 = 10; // face cards are 10
     else val1 = stoi(value1);// direct convert from the string to int value 
 
     if(value2 == "A") val2 = 11;
-    if(value2 == "J" || value2 == "Q" || value2 == "K") val2 = 10;
+    else if(value2 == "J" || value2 == "Q" || value2 == "K") val2 = 10;
     else val2 = stoi(value2);
 
     int playersum = val1+ val2;
